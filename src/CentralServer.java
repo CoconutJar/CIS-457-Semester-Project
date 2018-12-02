@@ -168,6 +168,9 @@ class ClientHandler implements Runnable {
 				// POST = Posting to main feed.
 				// SEND = Forwards a message.
 				// BATTLE = Invites a friend to a game.
+				// ADD = Adds a friend.
+				// REMOVE = Remove a friend.
+				// GETF = Get Friend List.
 				// ?
 				if (fromClient.equals("QUIT")) {
 					hasNotQuit = false;
@@ -199,6 +202,40 @@ class ClientHandler implements Runnable {
 							user.friends.get(i).sendBattleRequest(this.clientName);
 						}
 					}
+
+					// TODO Right now only adds on one user. Also maybe should wait till other
+					// confirms.
+				} else if (fromClient.startsWith("ADD")) {
+					String person = tokens.nextToken();
+					person = tokens.nextToken("%");
+
+					for (int i = 0; i < CentralServer.users.size(); i++) {
+
+						if (CentralServer.users.get(i).userName.equals(person)) {
+							// Adds person to user friends list.
+							user.friends.add(CentralServer.users.get(i));
+						}
+
+					}
+
+					// TODO Right now only removes on one user.
+				} else if (fromClient.startsWith("REMOVE")) {
+
+					String person = tokens.nextToken();
+					person = tokens.nextToken("%");
+
+					for (int i = 0; i < user.friends.size(); i++) {
+
+						if (user.friends.get(i).userName.equals(person)) {
+							// removes a friend.
+							user.friends.remove(i);
+							break;
+						}
+
+					}
+
+					// TODO Return UpdatedFriendList.
+				} else if (fromClient.startsWith("GETF")) {
 
 				} else {
 					// ?

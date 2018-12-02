@@ -91,12 +91,13 @@ class ClientHandler implements Runnable {
 		String connectionString;
 		String status;
 		boolean notSignedIn = true;
+
 		while (notSignedIn) {
 			try {
-				// Sets the first string received as the UserName, hostName and speed for the
-				// client.
-				connectionString = dis.readUTF();
 				// Client sends a String filled with information about the client.
+				connectionString = dis.readUTF();
+
+				// Sets the first string received as the status, UserName, password.
 				StringTokenizer tokens = new StringTokenizer(connectionString);
 				status = tokens.nextToken();
 				clientName = tokens.nextToken();
@@ -138,11 +139,11 @@ class ClientHandler implements Runnable {
 						User u = new User(this.clientName, this.password, dis, dos);
 						CentralServer.users.add(u);
 
-						dos.writeUTF("Profile sucessfully created");
+						dos.writeUTF("201: Profile sucessfully created");
 						notSignedIn = false;
 
 					} else {
-						dos.writeUTF("User Name is already taken. :( ");
+						dos.writeUTF("102: User Name is already taken. :( ");
 					}
 				}
 			} catch (IOException e1) {
@@ -150,15 +151,24 @@ class ClientHandler implements Runnable {
 			}
 		}
 
-		// Main Loop
+		// Once client has signed-in.
 		try {
 			// Do while conditional.
 			boolean hasNotQuit = true;
-			// Breaks down the messages received by the client into a command.
+
+			// Main Loop
 			do {
-				// Waits for data.
+
+				// Waits for a command from the client.
 				fromClient = dis.readUTF();
 				StringTokenizer tokens = new StringTokenizer(fromClient);
+
+				// TODO Make sure commands are broken down correctly.
+
+				// POST = Posting to main feed.
+				// SEND = Forwards a message.
+				// BATTLE = Invites a friend to a game.
+				// ?
 				if (fromClient.equals("QUIT")) {
 					hasNotQuit = false;
 				} else if (fromClient.startsWith("POST")) {
@@ -191,20 +201,29 @@ class ClientHandler implements Runnable {
 					}
 
 				} else {
-
+					// ?
 				}
+
 			} while (hasNotQuit);
+
 			// Set the online status to offline.
 			this.loggedIn = false;
+
 			// Close the Socket.
 			this.connectionSocket.close();
 			System.out.println(clientName + " has disconnected!");
+
 		} catch (Exception e) {
 			System.err.println(e);
 			System.exit(1);
 		}
 	}
 
+	/**
+	 * 
+	 * Deletes a User Profile.
+	 * 
+	 */
 	private void deleteProfile() {
 		for (int i = 0; i < CentralServer.users.size(); i++) {
 			if (CentralServer.users.get(i).userName == this.clientName) {
@@ -213,18 +232,28 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	/**
+	 * 
+	 * Tries to sign into a User Profile.
+	 * 
+	 */
 	private boolean attemptSignIn(String userName, String password) {
 		boolean signedIn = false;
 
 		for (int i = 0; i < CentralServer.users.size(); i++) {
 
 			if (CentralServer.users.get(i).userName.equals(userName))
+
+				// Checks to see if the password is correct.
 				if (CentralServer.users.get(i).password.equals(password)) {
+
+					// Assigns the user variable on sign-in.
 					user = CentralServer.users.get(i);
 					System.out.println(user.userName + " has signed in.");
 					signedIn = true;
 				}
 		}
+
 		return signedIn;
 	}
 
@@ -260,30 +289,42 @@ class User {
 		this.dos = dos;
 	}
 
+	/**
+	 * Sends a post for the Main Feed.
+	 * 
+	 * @param post
+	 */
 	public void updateFeed(String post) {
 
 		try {
 			dos.writeUTF("POST" + post);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Forwards a message.
+	 * 
+	 * @param msg
+	 */
 	public void sendMsg(String msg) {
 		try {
 			dos.writeUTF("SENT" + msg);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * Sends a game invite.
+	 * 
+	 * @param challenger
+	 */
 	public void sendBattleRequest(String challenger) {
 		try {
 			dos.writeUTF("BATTLE" + challenger);
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}

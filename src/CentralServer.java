@@ -1,4 +1,3 @@
-
 	import java.io.BufferedReader;
 	import java.io.DataInputStream;
 	import java.io.DataOutputStream;
@@ -8,47 +7,36 @@
 	import java.net.Socket;
 	import java.util.ArrayList;
 	import java.util.StringTokenizer;
-
-	public class CentralServer {
+ 	public class CentralServer {
 		
 		// Socket that awaits client connections.
 		private static ServerSocket welcomeSocket;
-
-		// Holds all client UserNames that have connected to the server.
+ 		// Holds all client UserNames that have connected to the server.
 		public static ArrayList<User> users = new ArrayList<User>();
-
-		public static void main(String[] args) throws IOException {
-
-			try {
+ 		public static void main(String[] args) throws IOException {
+ 			try {
 				welcomeSocket = new ServerSocket(3158); // ServerPort
 				System.out.println("Server UP!");
 			} catch (Exception e) {
 				System.err.println("ERROR: Server could not be started.");
 			}
-
-			try {
+ 			try {
 				while (true) {
-
-					// Waits for a client to connect.
+ 					// Waits for a client to connect.
 					Socket connectionSocket = welcomeSocket.accept();
-
-					// Set up input and output stream with the client to send and receive messages.
+ 					// Set up input and output stream with the client to send and receive messages.
 					DataInputStream dis = new DataInputStream(connectionSocket.getInputStream());
 					DataOutputStream dos = new DataOutputStream(connectionSocket.getOutputStream());
-
-					// Creates a clientHandler object with the client.
+ 					// Creates a clientHandler object with the client.
 					ClientHandler client = new ClientHandler(connectionSocket, dis, dos);
-
-					// Makes a thread to allow the client and clientHandler to interact.
+ 					// Makes a thread to allow the client and clientHandler to interact.
 					Thread t = new Thread(client);
 					t.start();
 				}
-
-			} catch (Exception e) {
+ 			} catch (Exception e) {
 				System.err.println("ERROR: Connecting Client");
 				e.printStackTrace();
-
-			} finally {
+ 			} finally {
 				try {
 					// Close the Socket in the event of an error.
 					welcomeSocket.close();
@@ -57,18 +45,15 @@
 					e.printStackTrace();
 				}
 			}
-
-		}
+ 		}
 	}
-
-	/*******************************************************************************************
+ 	/*******************************************************************************************
 	 * 
 	 * Handles the client.
 	 * 
 	 ******************************************************************************************/
 	class ClientHandler implements Runnable {
-
-		Socket connectionSocket;
+ 		Socket connectionSocket;
 		
 		DataInputStream dis;
 		DataOutputStream dos;
@@ -82,50 +67,40 @@
 		int port;
 		
 		boolean loggedIn;
-
-		/****
+ 		/****
 		 * 
 		 * Sets up the ClientHandler object/
 		 * 
 		 ****/
 		public ClientHandler(Socket connectionSocket, DataInputStream dis, DataOutputStream dos) {
-
-			this.connectionSocket = connectionSocket;
+ 			this.connectionSocket = connectionSocket;
 			this.dis = dis;
 			this.dos = dos;
 			this.loggedIn = true;
-
-		}
-
-		/****
+ 		}
+ 		/****
 		 * 
 		 * Allows multiple clients to interact with the server.
 		 * 
 		 ****/
 		@Override
 		public void run() {
-
-			String connectionString;
+ 			String connectionString;
 			String status;
 			boolean notSignedIn = true;
-
-			while(notSignedIn) {
+ 			while(notSignedIn) {
 			try {
-
-				// Sets the first string received as the UserName, hostName and speed for the
+ 				// Sets the first string received as the UserName, hostName and speed for the
 				// client.
 				connectionString = dis.readUTF();
-
-				// Client sends a String filled with information about the client.
+ 				// Client sends a String filled with information about the client.
 				StringTokenizer tokens = new StringTokenizer(connectionString);
 				status = tokens.nextToken();
 				clientName = tokens.nextToken();
 				password = tokens.nextToken();
 				
-
-				System.out.println(clientName + " is attempting to Sign In!");		
-
-				// If the client is a returning user status will be set to Return.
+ 				System.out.println(clientName + " is attempting to Sign In!");		
+ 				// If the client is a returning user status will be set to Return.
 				if (status.equals("Return")) {
 					
 					boolean profileExists = attemptSignIn(clientName, password);
@@ -169,8 +144,7 @@
 						dos.writeUTF("User Name is already taken. :( ");
 					}
 				}
-
-			} catch (IOException e1) {
+ 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 			}
@@ -179,22 +153,16 @@
 			
 			// Main Loop
 			try {
-
-				// Do while conditional.
+ 				// Do while conditional.
 				boolean hasNotQuit = true;
-
-				// Breaks down the messages received by the client into a command.
+ 				// Breaks down the messages received by the client into a command.
 				do {
-
-					// Waits for data.
+ 					// Waits for data.
 					fromClient = dis.readUTF();
 					StringTokenizer tokens = new StringTokenizer(fromClient);
-
-					if (fromClient.equals("QUIT")) {
-
-						hasNotQuit = false;
-
-					} 
+ 					if (fromClient.equals("QUIT")) {
+ 						hasNotQuit = false;
+ 					} 
 					else if(fromClient.startsWith("POST")){
 						
 						String post = tokens.nextToken();
@@ -228,20 +196,15 @@
 						
 					}
 					else {
-
-						
+ 						
 					}
-
-				} while (hasNotQuit);
-
-				// Set the online status to offline.
+ 				} while (hasNotQuit);
+ 				// Set the online status to offline.
 				this.loggedIn = false;
-
-				// Close the Socket.
+ 				// Close the Socket.
 				this.connectionSocket.close();
 				System.out.println(clientName + " has disconnected!");
-
-			} catch (Exception e) {
+ 			} catch (Exception e) {
 				System.err.println(e);
 				System.exit(1);
 			}
@@ -271,15 +234,13 @@
 		}
 		
 	}
-
-	/*******************************************************************************************
+ 	/*******************************************************************************************
 	 * 
 	 * Handles the clients files that are available for download.
 	 * 
 	 ******************************************************************************************/
 	class User {
-
-		public String realName;
+ 		public String realName;
 		public String userName;
 		public String password;
 		
@@ -290,8 +251,7 @@
 		
 		// For P2P
 		private int port;
-
-		/****
+ 		/****
 		 * 
 		 * Holds all the information of the User.
 		 * 
@@ -333,4 +293,3 @@
 		
 		
 	}
-

@@ -6,6 +6,12 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
+/**
+ * 
+ * 
+ * @author
+ *
+ */
 public class CentralServer {
 
 	// Socket that awaits client connections.
@@ -16,6 +22,8 @@ public class CentralServer {
 	public static ArrayList<User> onlineUsers = new ArrayList<User>();
 
 	public static ArrayList<Post> userPosts = new ArrayList<Post>();
+
+	public static ArrayList<Group> groups = new ArrayList<Group>();
 
 	public static void main(String[] args) throws IOException {
 		try {
@@ -171,14 +179,19 @@ class ClientHandler implements Runnable {
 
 				// TODO Make sure commands are broken down correctly.
 
+				// QUIT = Quit.
 				// POST = Posting to main feed.
 				// SEND = Forwards a message.
 				// BATTLE = Invites a friend to a game.
 				// ADD = Adds a friend.
 				// REMOVE = Remove a friend.
 				// LIKE = Like a statusUpdate.
-				// COMMENT = Comment on a statusUpdate
+				// COMMENT = Comment on a statusUpdate.
+				// GETL = Get users who liked the post.
+				// GETC = Get comments on a post.
 				// GETF = Get Friend List.
+				// GROUP = Start a new group chat with listed users.
+				// LEAVE = Leave group chat.
 				// REFRESH = Refresh news feed and Online Friends.
 				// DELETE = Delete a statusUpdate.
 				// ?
@@ -195,11 +208,10 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("SEND")) {
 
+					String to = tokens.nextToken();
 					String msg = tokens.nextToken("%");
 
-					for (int i = 0; i < user.friends.size(); i++) {
-						user.friends.get(i).sendMsg(msg);
-					}
+					sendMsg(to, msg);
 
 					// TODO No idea what we are doing with this.
 				} else if (command.equals("BATTLE")) {
@@ -208,7 +220,7 @@ class ClientHandler implements Runnable {
 
 					for (int i = 0; i < user.friends.size(); i++) {
 						if (user.friends.get(i).userName.equals(opponent)) {
-							user.friends.get(i).sendBattleRequest(this.clientName);
+							user.friends.get(i).dos.writeUTF("BATTLE" + clientName);
 						}
 					}
 
@@ -218,7 +230,7 @@ class ClientHandler implements Runnable {
 					String person = tokens.nextToken("%");
 					addFriend(person);
 
-					// TODO Right now only removes on one user.
+					// TODO Right now only removes on one user (like Twitter).
 				} else if (command.equals("REMOVE")) {
 
 					String person = tokens.nextToken("%");
@@ -233,10 +245,29 @@ class ClientHandler implements Runnable {
 
 					// TODO find a way to identify a post maybe id?
 					// commentStatus(post);
+				} else if (command.equals("GETL")) {
+
+					// TODO find a way to identify a post maybe id?
+					// getLikes(post);
+
+				} else if (command.equals("GETC")) {
+
+					// TODO find a way to identify a post maybe id?
+					// getComments(post);
 
 				} else if (command.equals("GETF")) {
 
 					sendOnlineFriends();
+
+				} else if (command.equals("GROUP")) {
+
+					String userList = tokens.nextToken("%");
+					formGroupChat(userList);
+
+				} else if (command.equals("LEAVE")) {
+
+					String groupName = tokens.nextToken();
+					leaveGroup(groupName);
 
 				} else if (command.equals("REFRESH")) {
 
@@ -253,10 +284,10 @@ class ClientHandler implements Runnable {
 			} while (hasNotQuit);
 
 			// Set the online status to offline.
-			this.loggedIn = false;
+			loggedIn = false;
 
 			// Close the Socket.
-			this.connectionSocket.close();
+			connectionSocket.close();
 			System.out.println(clientName + " has disconnected!");
 
 		} catch (Exception e) {
@@ -265,23 +296,25 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	// helpers
+
+	/**
+	 * 
+	 */
 	private synchronized void createProfile() {
 
-		User u = new User(this.clientName, this.password, dis, dos);
+		User u = new User(clientName, password, dis, dos);
 		CentralServer.users.add(u);
 
 		try {
 			dos.writeUTF("201: Profile sucessfully created");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
 	/**
-	 * 
 	 * Deletes a User Profile.
-	 * 
 	 */
 	private synchronized void deleteProfile() {
 		for (int i = 0; i < CentralServer.users.size(); i++) {
@@ -292,9 +325,11 @@ class ClientHandler implements Runnable {
 	}
 
 	/**
+	 * Attempts to sign-in the Client
 	 * 
-	 * Tries to sign into a User Profile.
-	 * 
+	 * @param userName
+	 * @param password
+	 * @return signedIn - Whether or not the client signedIn
 	 */
 	private boolean attemptSignIn(String userName, String password) {
 		boolean signedIn = false;
@@ -316,6 +351,9 @@ class ClientHandler implements Runnable {
 		return signedIn;
 	}
 
+	/**
+	 * 
+	 */
 	private void updateClientNewsFeed() {
 
 		for (User friend : user.friends) {
@@ -325,7 +363,6 @@ class ClientHandler implements Runnable {
 				try {
 					dos.writeUTF(post.userName + post.msg + post.time + post.comments.size() + post.likes.size());
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -334,22 +371,22 @@ class ClientHandler implements Runnable {
 		try {
 			dos.writeUTF("END");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * 
+	 * 
+	 */
 	private void sendOnlineFriends() {
 
 		for (User friend : user.friends) {
-			for (User online : CentralServer.onlineUsers) {
-				if (friend.userName.equals(online.userName)) {
-					try {
-						dos.writeUTF(friend.userName);
-					} catch (IOException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
-					}
+			if (CentralServer.onlineUsers.contains(friend)) {
+				try {
+					dos.writeUTF(friend.userName);
+				} catch (IOException e) {
+					e.printStackTrace();
 				}
 			}
 		}
@@ -357,11 +394,36 @@ class ClientHandler implements Runnable {
 		try {
 			dos.writeUTF("END");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 	}
 
+	/**
+	 * 
+	 * @param msg
+	 */
+	private void sendMsg(String groupName, String msg) {
+
+		for (Group group : CentralServer.groups) {
+			if (group.name.equals(groupName)) {
+				for (User member : group.members) {
+
+					try {
+						member.dos.writeUTF(groupName + " " + msg + "%");
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+				break;
+			}
+		}
+	}
+
+	/**
+	 * 
+	 * @param msg
+	 * @param time
+	 */
 	private synchronized void postStatus(String msg, String time) {
 
 		Post post = new Post(user.userName, msg, time);
@@ -369,11 +431,37 @@ class ClientHandler implements Runnable {
 		user.posts.add(post);
 		CentralServer.userPosts.add(post);
 
+		if (msg.contains("@")) {
+			boolean moreUsers = true;
+			do {
+				String looking = msg.substring(msg.indexOf("@"), msg.length() - 1);
+				StringTokenizer tokens = new StringTokenizer(looking);
+				String tagged = tokens.nextToken();
+				for (User friend : user.friends) {
+					if (tagged.equals(friend.userName)) {
+						sendNotification(tagged, user.userName + " has tagged you in a post!");
+					}
+					break;
+				}
+				moreUsers = looking.contains("@");
+			} while (moreUsers);
+		}
+
 		for (int i = 0; i < user.friends.size(); i++) {
-			user.friends.get(i).updateFeed(post);
+
+			try {
+				user.friends.get(i).dos.writeUTF("POST" + post.userName + post.msg + post.time);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+
 		}
 	}
 
+	/**
+	 * 
+	 * @param post
+	 */
 	private synchronized void likePost(Post post) {
 
 		post.likes.add(user);
@@ -381,6 +469,11 @@ class ClientHandler implements Runnable {
 
 	}
 
+	/**
+	 * 
+	 * @param post
+	 * @param comment
+	 */
 	private synchronized void commentPost(Post post, String comment) {
 
 		post.addComment(user, comment);
@@ -388,6 +481,10 @@ class ClientHandler implements Runnable {
 
 	}
 
+	/**
+	 * 
+	 * @param post
+	 */
 	private synchronized void deleteStatus(Post post) {
 
 		user.posts.remove(post);
@@ -395,6 +492,10 @@ class ClientHandler implements Runnable {
 
 	}
 
+	/**
+	 * 
+	 * @param person
+	 */
 	private synchronized void addFriend(String person) {
 
 		for (int i = 0; i < CentralServer.users.size(); i++) {
@@ -407,7 +508,12 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	/**
+	 * 
+	 * @param person
+	 */
 	private synchronized void removeFriend(String person) {
+
 		for (int i = 0; i < user.friends.size(); i++) {
 
 			if (user.friends.get(i).userName.equals(person)) {
@@ -418,6 +524,49 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	/**
+	 * 
+	 * @param list
+	 */
+	private synchronized void formGroupChat(String list) {
+
+		StringTokenizer tokens = new StringTokenizer(list);
+		String groupName = tokens.nextToken();
+		ArrayList<User> groupMembers = new ArrayList<User>();
+		while (tokens.hasMoreTokens()) {
+			String member = tokens.nextToken();
+			for (User friend : user.friends) {
+				if (friend.userName.equals(member)) {
+					groupMembers.add(friend);
+				}
+			}
+		}
+
+		Group newGroup = new Group(groupName, groupMembers);
+		CentralServer.groups.add(newGroup);
+	}
+
+	/**
+	 * 
+	 * @param groupName
+	 */
+	private synchronized void leaveGroup(String groupName) {
+
+		for (Group group : CentralServer.groups) {
+			if (group.name.equals(groupName)) {
+				if (group.members.contains(user))
+					group.members.remove(user);
+				break;
+			}
+		}
+
+	}
+
+	/**
+	 * 
+	 * @param user
+	 * @param alert
+	 */
 	private void sendNotification(String user, String alert) {
 		for (int i = 0; i < CentralServer.users.size(); i++) {
 
@@ -426,7 +575,6 @@ class ClientHandler implements Runnable {
 				try {
 					CentralServer.users.get(i).dos.writeUTF("ALERT " + alert);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -465,47 +613,6 @@ class User {
 		this.dis = dis;
 		this.dos = dos;
 	}
-
-	/**
-	 * Sends a post for the Main Feed.
-	 * 
-	 * @param post
-	 */
-	public void updateFeed(Post post) {
-
-		try {
-			dos.writeUTF("POST" + post.userName + post.msg + post.time);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Forwards a message.
-	 * 
-	 * @param msg
-	 */
-	public void sendMsg(String msg) {
-		try {
-			dos.writeUTF("SENT" + msg);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	/**
-	 * Sends a game invite.
-	 * 
-	 * @param challenger
-	 */
-	public void sendBattleRequest(String challenger) {
-		try {
-			dos.writeUTF("BATTLE" + challenger);
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
 }
 
 class Post {
@@ -548,6 +655,18 @@ class Comment {
 	public Comment(User user, String comment) {
 		this.user = user;
 		this.comment = comment;
+	}
+
+}
+
+class Group {
+
+	public String name;
+	public ArrayList<User> members = new ArrayList<User>();
+
+	public Group(String name, ArrayList<User> members) {
+		this.name = name;
+		this.members = members;
 	}
 
 }

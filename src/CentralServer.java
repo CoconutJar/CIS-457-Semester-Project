@@ -1,9 +1,11 @@
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
-import java.io.IOException;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Scanner;
 import java.util.StringTokenizer;
 
 public class CentralServer {
@@ -13,10 +15,30 @@ public class CentralServer {
 	// Holds all client UserNames that have connected to the server.
 	public static ArrayList<User> users = new ArrayList<User>();
 
+
 	public static void main(String[] args) throws IOException {
+		// TESTING
+//		User u = new User("pikachu", "password123");
+//		User u1 = new User("newguy", "newguypass");
+//		String username = "pikachu";
+		// ^^TESTING^^
+
 		try {
 			welcomeSocket = new ServerSocket(3158); // ServerPort
 			System.out.println("Server UP!");
+
+			// TESTING
+//			fillUserList(users);
+//			printUserList(users);
+//			addUser(u);
+//			addUser(u1);
+//			fillUserList(users);
+//			printUserList(users);
+//			deleteUser(username);
+//			fillUserList(users);
+//			printUserList(users);
+			// ^^TESTING^^
+
 		} catch (Exception e) {
 			System.err.println("ERROR: Server could not be started.");
 		}
@@ -46,6 +68,90 @@ public class CentralServer {
 			}
 		}
 	}
+
+	// FOR TESTING: Needs to be moved to ClientHandler() once Client-side is connected
+	// Delete User from Database (userTable.txt)
+	private static void deleteUser(String username) throws IOException {
+		for (int i = 0; i < CentralServer.users.size(); i++) {
+			if (CentralServer.users.get(i).userName.equals(username)) {
+				CentralServer.users.remove(i);
+			}
+		}
+
+		File file = new File("./src/db/userTable.txt");
+		FileWriter fw = null;
+		BufferedWriter bw = null;
+
+		try {
+			fw = new FileWriter(file.getAbsoluteFile(),false);
+			bw = new BufferedWriter(fw);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		assert bw != null;
+		try {
+			for (int i = 0; i < CentralServer.users.size(); i++) {
+				User u = CentralServer.users.get(i);
+				String data = u.getUserName() + " " + u.getPassword();
+
+				bw.write(data);
+				if(i < CentralServer.users.size() - 1){
+					bw.newLine();
+				}
+			}
+		} catch(IOException e){
+			e.printStackTrace();
+		}finally {
+			bw.close();
+		}
+
+		System.out.println("User Removed from Database.");
+	}
+	// FOR TESTING: Needs to be moved to ClientHandler() once Client-side is connected
+	// Add User to Database (userTable.txt)
+	private static void addUser(User u) {
+		try {
+			String data = u.getUserName() + " " + u.getPassword();
+			System.out.println("New User: " + data);
+			File file = new File("./src/db/userTable.txt");
+
+			FileWriter fw = new FileWriter(file.getAbsoluteFile(),true);
+			BufferedWriter bw = new BufferedWriter(fw);
+			bw.newLine();
+			bw.write(data);
+			bw.close();
+			System.out.println("User Added to Database.");
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+
+	// FOR TESTING: Needs to be moved to ClientHandler() once Client-side is connected
+	// Fills ArrayList of all known Users in database
+	private static void fillUserList(ArrayList<User> users) {
+		File file = new File("./src/db/userTable.txt");
+		users.clear();
+
+		try(Scanner scanner = new Scanner(file)){
+			while(scanner.hasNextLine()){
+				User user = new User(scanner.next(), scanner.next());
+				users.add(user);
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// FOR TESTING: Needs to be moved to ClientHandler() once Client-side is connected
+	// Prints all Users of an ArrayList<User>
+	private static void printUserList(ArrayList<User> users){
+		for (int i = 0; i < CentralServer.users.size(); i++) {
+			System.out.println("ID: " + i + " " + CentralServer.users.get(i).toString());
+		}
+	}
+
+
 }
 
 /*******************************************************************************************
@@ -92,6 +198,7 @@ class ClientHandler implements Runnable {
 		String status;
 		boolean notSignedIn = true;
 
+		fillUserList(CentralServer.users);
 		while (notSignedIn) {
 			try {
 				// Client sends a String filled with information about the client.
@@ -112,6 +219,8 @@ class ClientHandler implements Runnable {
 					if (profileExists) {
 						dos.writeUTF("200: Sign in Sucessfull");
 						notSignedIn = false;
+						// Set datastreams based on successful sign-in
+						setDataStreams(clientName);
 					} else {
 						dos.writeUTF("101: Sign in Failed");
 					}
@@ -138,6 +247,7 @@ class ClientHandler implements Runnable {
 
 						User u = new User(this.clientName, this.password, dis, dos);
 						CentralServer.users.add(u);
+						addUserToDB(u);
 
 						dos.writeUTF("201: Profile sucessfully created");
 						notSignedIn = false;
@@ -155,6 +265,7 @@ class ClientHandler implements Runnable {
 		try {
 			// Do while conditional.
 			boolean hasNotQuit = true;
+
 
 			// Main Loop
 			do {
@@ -256,17 +367,99 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	private void fillUserList(ArrayList<User> users) {
+		File file = new File("./src/db/userTable.txt");
+		users.clear();
+
+		try(Scanner scanner = new Scanner(file)){
+			while(scanner.hasNextLine()){
+				User user = new User(scanner.next(), scanner.next());
+				users.add(user);
+			}
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		}
+	}
+
+	// Assign datastreams to user based on new successful sign-in session
+	private void setDataStreams(String clientName) {
+		for (int i = 0; i < CentralServer.users.size(); i++) {
+
+			if (CentralServer.users.get(i).userName.equals(clientName))
+				// Assigns the user variable on sign-in.
+				user = CentralServer.users.get(i);
+				user.setDis(this.dis);
+				user.setDos(this.dos);
+		}
+	}
+
+	// Append new User to userTable.txt
+	private void addUserToDB(User u) {
+		try {
+			String data = u.getUserName() + " " + u.getPassword();
+			System.out.println("New User: " + data);
+			File file = new File("./src/db/userTable.txt");
+
+			FileWriter fw = new FileWriter(file.getAbsoluteFile(),true);
+			BufferedWriter bw = new BufferedWriter(fw);
+			bw.newLine();
+			bw.write(data);
+			bw.close();
+			System.out.println("User Added to Database.");
+		} catch(IOException e){
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * 
 	 * Deletes a User Profile.
 	 * 
 	 */
-	private void deleteProfile() {
+//	private void deleteProfile(String username) {
+//		for (int i = 0; i < CentralServer.users.size(); i++) {
+//			if (CentralServer.users.get(i).userName == username) {
+//				CentralServer.users.remove(i);
+//			}
+//		}
+//	}
+
+	private static void deleteUser(String username) throws IOException {
 		for (int i = 0; i < CentralServer.users.size(); i++) {
-			if (CentralServer.users.get(i).userName == this.clientName) {
+			if (CentralServer.users.get(i).userName.equals(username)) {
 				CentralServer.users.remove(i);
 			}
 		}
+
+		File file = new File("./src/db/userTable.txt");
+		FileWriter fw = null;
+		BufferedWriter bw = null;
+
+		try {
+			fw = new FileWriter(file.getAbsoluteFile(),false);
+			bw = new BufferedWriter(fw);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		assert bw != null;
+		try {
+			for (int i = 0; i < CentralServer.users.size(); i++) {
+				User u = CentralServer.users.get(i);
+				String data = u.getUserName() + " " + u.getPassword();
+
+				bw.write(data);
+				if(i < CentralServer.users.size() - 1){
+					bw.newLine();
+				}
+			}
+		} catch(IOException e){
+			e.printStackTrace();
+		}finally {
+			bw.close();
+		}
+
+		System.out.println("User Removed from Database.");
 	}
 
 	/**
@@ -314,6 +507,7 @@ class User {
 	// For P2P
 	private int port;
 
+
 	/****
 	 * 
 	 * Holds all the information of the User.
@@ -324,6 +518,36 @@ class User {
 		this.password = password;
 		this.dis = dis;
 		this.dos = dos;
+	}
+
+	public User(String userName, String password){
+		this.userName = userName;
+		this.password = password;
+	}
+
+	public String getUserName() {
+		return userName;
+	}
+
+	public String getPassword() {
+		return password;
+	}
+
+	public void setRealName(String realName) {
+		this.realName = realName;
+	}
+
+	public void setDis(DataInputStream dis) {
+		this.dis = dis;
+	}
+
+	public void setDos(DataOutputStream dos) {
+		this.dos = dos;
+	}
+
+	public String toString(){
+		return ("Username: " + this.getUserName() +
+				"\tPassword: " + this.getPassword());
 	}
 
 	/**

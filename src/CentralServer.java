@@ -13,6 +13,10 @@ public class CentralServer {
 	// Holds all client UserNames that have connected to the server.
 	public static ArrayList<User> users = new ArrayList<User>();
 
+	public static ArrayList<User> onlineUsers = new ArrayList<User>();
+
+	public static ArrayList<Post> userPosts = new ArrayList<Post>();
+
 	public static void main(String[] args) throws IOException {
 		try {
 			welcomeSocket = new ServerSocket(3158); // ServerPort
@@ -136,10 +140,7 @@ class ClientHandler implements Runnable {
 					// Creates a users object with the information if the userName was not taken.
 					if (!takenUserName) {
 
-						User u = new User(this.clientName, this.password, dis, dos);
-						CentralServer.users.add(u);
-
-						dos.writeUTF("201: Profile sucessfully created");
+						createProfile();
 						notSignedIn = false;
 
 					} else {
@@ -156,12 +157,17 @@ class ClientHandler implements Runnable {
 			// Do while conditional.
 			boolean hasNotQuit = true;
 
+			updateClientNewsFeed();
+			sendOnlineFriends();
+
 			// Main Loop
 			do {
 
 				// Waits for a command from the client.
 				fromClient = dis.readUTF();
 				StringTokenizer tokens = new StringTokenizer(fromClient);
+
+				String command = tokens.nextToken();
 
 				// TODO Make sure commands are broken down correctly.
 
@@ -170,32 +176,35 @@ class ClientHandler implements Runnable {
 				// BATTLE = Invites a friend to a game.
 				// ADD = Adds a friend.
 				// REMOVE = Remove a friend.
+				// LIKE = Like a statusUpdate.
+				// COMMENT = Comment on a statusUpdate
 				// GETF = Get Friend List.
+				// REFRESH = Refresh news feed and Online Friends.
+				// DELETE = Delete a statusUpdate.
 				// ?
 				if (fromClient.equals("QUIT")) {
+
 					hasNotQuit = false;
-				} else if (fromClient.startsWith("POST")) {
 
-					String post = tokens.nextToken();
-					post = tokens.nextToken("%");
+				} else if (command.equals("POST")) {
 
-					for (int i = 0; i < user.friends.size(); i++) {
-						user.friends.get(i).updateFeed(post);
-					}
+					String msg = tokens.nextToken("%");
+					String time = tokens.nextToken("%");
 
-				} else if (fromClient.startsWith("SEND")) {
+					postStatus(msg, time);
 
-					String msg = tokens.nextToken();
-					msg = tokens.nextToken("%");
+				} else if (command.equals("SEND")) {
+
+					String msg = tokens.nextToken("%");
 
 					for (int i = 0; i < user.friends.size(); i++) {
 						user.friends.get(i).sendMsg(msg);
 					}
 
-				} else if (fromClient.startsWith("BATTLE")) {
+					// TODO No idea what we are doing with this.
+				} else if (command.equals("BATTLE")) {
 
-					String opponent = tokens.nextToken();
-					opponent = tokens.nextToken("%");
+					String opponent = tokens.nextToken("%");
 
 					for (int i = 0; i < user.friends.size(); i++) {
 						if (user.friends.get(i).userName.equals(opponent)) {
@@ -203,42 +212,42 @@ class ClientHandler implements Runnable {
 						}
 					}
 
-					// TODO Right now only adds on one user. Also maybe should wait till other
-					// confirms.
-				} else if (fromClient.startsWith("ADD")) {
-					String person = tokens.nextToken();
-					person = tokens.nextToken("%");
+					// TODO Right now only adds on one user (like Twitter).
+				} else if (command.equals("ADD")) {
 
-					for (int i = 0; i < CentralServer.users.size(); i++) {
-
-						if (CentralServer.users.get(i).userName.equals(person)) {
-							// Adds person to user friends list.
-							user.friends.add(CentralServer.users.get(i));
-						}
-
-					}
+					String person = tokens.nextToken("%");
+					addFriend(person);
 
 					// TODO Right now only removes on one user.
-				} else if (fromClient.startsWith("REMOVE")) {
+				} else if (command.equals("REMOVE")) {
 
-					String person = tokens.nextToken();
-					person = tokens.nextToken("%");
+					String person = tokens.nextToken("%");
+					removeFriend(person);
 
-					for (int i = 0; i < user.friends.size(); i++) {
+				} else if (command.equals("LIKE")) {
 
-						if (user.friends.get(i).userName.equals(person)) {
-							// removes a friend.
-							user.friends.remove(i);
-							break;
-						}
+					// TODO find a way to identify a post maybe id?
+					// likeStatus(post);
 
-					}
+				} else if (command.equals("COMMENT")) {
 
-					// TODO Return UpdatedFriendList.
-				} else if (fromClient.startsWith("GETF")) {
+					// TODO find a way to identify a post maybe id?
+					// commentStatus(post);
 
-				} else {
-					// ?
+				} else if (command.equals("GETF")) {
+
+					sendOnlineFriends();
+
+				} else if (command.equals("REFRESH")) {
+
+					updateClientNewsFeed();
+					sendOnlineFriends();
+
+				} else if (command.equals("DELETE")) {
+
+					// TODO find a way to identify a post maybe id?
+					// deleteStatus(post);
+
 				}
 
 			} while (hasNotQuit);
@@ -256,12 +265,25 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	private synchronized void createProfile() {
+
+		User u = new User(this.clientName, this.password, dis, dos);
+		CentralServer.users.add(u);
+
+		try {
+			dos.writeUTF("201: Profile sucessfully created");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * 
 	 * Deletes a User Profile.
 	 * 
 	 */
-	private void deleteProfile() {
+	private synchronized void deleteProfile() {
 		for (int i = 0; i < CentralServer.users.size(); i++) {
 			if (CentralServer.users.get(i).userName == this.clientName) {
 				CentralServer.users.remove(i);
@@ -294,11 +316,128 @@ class ClientHandler implements Runnable {
 		return signedIn;
 	}
 
+	private void updateClientNewsFeed() {
+
+		for (User friend : user.friends) {
+
+			for (Post post : friend.posts) {
+
+				try {
+					dos.writeUTF(post.userName + post.msg + post.time + post.comments.size() + post.likes.size());
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+
+		try {
+			dos.writeUTF("END");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private void sendOnlineFriends() {
+
+		for (User friend : user.friends) {
+			for (User online : CentralServer.onlineUsers) {
+				if (friend.userName.equals(online.userName)) {
+					try {
+						dos.writeUTF(friend.userName);
+					} catch (IOException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+			}
+		}
+
+		try {
+			dos.writeUTF("END");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+	}
+
+	private synchronized void postStatus(String msg, String time) {
+
+		Post post = new Post(user.userName, msg, time);
+
+		user.posts.add(post);
+		CentralServer.userPosts.add(post);
+
+		for (int i = 0; i < user.friends.size(); i++) {
+			user.friends.get(i).updateFeed(post);
+		}
+	}
+
+	private synchronized void likePost(Post post) {
+
+		post.likes.add(user);
+		sendNotification(post.userName, user.userName + " has liked your post!");
+
+	}
+
+	private synchronized void commentPost(Post post, String comment) {
+
+		post.addComment(user, comment);
+		sendNotification(post.userName, user.userName + " has commented on your post!");
+
+	}
+
+	private synchronized void deleteStatus(Post post) {
+
+		user.posts.remove(post);
+		CentralServer.userPosts.remove(post);
+
+	}
+
+	private synchronized void addFriend(String person) {
+
+		for (int i = 0; i < CentralServer.users.size(); i++) {
+
+			if (CentralServer.users.get(i).userName.equals(person)) {
+				// Adds person to user friends list.
+				user.friends.add(CentralServer.users.get(i));
+				sendNotification(person, user.userName + " is now following you!");
+			}
+		}
+	}
+
+	private synchronized void removeFriend(String person) {
+		for (int i = 0; i < user.friends.size(); i++) {
+
+			if (user.friends.get(i).userName.equals(person)) {
+				// removes a friend.
+				user.friends.remove(i);
+				break;
+			}
+		}
+	}
+
+	private void sendNotification(String user, String alert) {
+		for (int i = 0; i < CentralServer.users.size(); i++) {
+
+			if (CentralServer.users.get(i).userName.equals(user)) {
+
+				try {
+					CentralServer.users.get(i).dos.writeUTF("ALERT " + alert);
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 }
 
 /*******************************************************************************************
  * 
- * Handles the clients files that are available for download.
+ * Handles the Users data.
  * 
  ******************************************************************************************/
 class User {
@@ -306,10 +445,11 @@ class User {
 	public String userName;
 	public String password;
 
-	DataInputStream dis;
-	DataOutputStream dos;
+	public DataInputStream dis;
+	public DataOutputStream dos;
 
 	public ArrayList<User> friends = new ArrayList<User>();
+	public ArrayList<Post> posts = new ArrayList<Post>();
 
 	// For P2P
 	private int port;
@@ -331,10 +471,10 @@ class User {
 	 * 
 	 * @param post
 	 */
-	public void updateFeed(String post) {
+	public void updateFeed(Post post) {
 
 		try {
-			dos.writeUTF("POST" + post);
+			dos.writeUTF("POST" + post.userName + post.msg + post.time);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -364,6 +504,50 @@ class User {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+	}
+
+}
+
+class Post {
+
+	public ArrayList<Comment> comments = new ArrayList<Comment>();
+	public ArrayList<User> likes = new ArrayList<User>();
+
+	String userName;
+	String msg;
+	String time;
+
+	public Post(String userName, String msg, String time) {
+		this.userName = userName;
+		this.msg = msg;
+		this.time = time;
+	}
+
+	public void addComment(User user, String comment) {
+		Comment c = new Comment(user, comment);
+		comments.add(c);
+	}
+
+	public void like(User user) {
+
+		if (likes.contains(user)) {
+			likes.remove(user);
+		} else {
+			likes.add(user);
+		}
+
+	}
+
+}
+
+class Comment {
+
+	public User user;
+	public String comment;
+
+	public Comment(User user, String comment) {
+		this.user = user;
+		this.comment = comment;
 	}
 
 }

@@ -323,7 +323,7 @@ class ClientHandler implements Runnable {
 	// helpers
 
 	/**
-	 * 
+	 * Creates a profile.
 	 */
 	private synchronized void createProfile() {
 
@@ -385,7 +385,8 @@ class ClientHandler implements Runnable {
 			for (Post post : friend.posts) {
 
 				try {
-					dos.writeUTF(post.userName + post.msg + post.getTime() + post.comments.size() + post.likes.size());
+					dos.writeUTF(post.userName + "%" + post.msg + "%" + post.getTime() + "%" + post.comments.size()
+							+ "%" + post.likes.size() + "%" + post.ID);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -433,7 +434,7 @@ class ClientHandler implements Runnable {
 				for (User member : group.members) {
 
 					try {
-						member.dos.writeUTF(groupName + " " + msg + "%");
+						member.dos.writeUTF("MESSAGE: " + groupName + "%" + msg);
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
@@ -505,7 +506,8 @@ class ClientHandler implements Runnable {
 		for (int i = 0; i < user.friends.size(); i++) {
 
 			try {
-				user.friends.get(i).dos.writeUTF("POST" + post.userName + post.msg + post.getTime());
+				user.friends.get(i).dos
+						.writeUTF("POST:" + post.userName + "%" + post.msg + "%" + post.getTime() + "%" + postID);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -628,7 +630,7 @@ class ClientHandler implements Runnable {
 			if (CentralServer.users.get(i).userName.equals(user)) {
 
 				try {
-					CentralServer.users.get(i).dos.writeUTF("ALERT " + alert);
+					CentralServer.users.get(i).dos.writeUTF("ALERT: " + alert);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}

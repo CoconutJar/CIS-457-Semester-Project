@@ -28,6 +28,8 @@ public class CentralServer {
 
 	public static int totalPosts = 0;
 
+	public static int userNum = 0;
+
 	public static void main(String[] args) throws IOException {
 		try {
 			welcomeSocket = new ServerSocket(3158); // ServerPort
@@ -125,7 +127,8 @@ class ClientHandler implements Runnable {
 					boolean profileExists = attemptSignIn(clientName, password);
 
 					if (profileExists) {
-						dos.writeUTF("200: Sign in Sucessfull");
+						dos.writeUTF("200: Sign in Sucessfull-" + CentralServer.userNum);
+						CentralServer.userNum++;
 						notSignedIn = false;
 					} else {
 						dos.writeUTF("101: Sign in Failed");
@@ -327,11 +330,12 @@ class ClientHandler implements Runnable {
 	 */
 	private synchronized void createProfile() {
 
-		User u = new User(clientName, password, dis, dos);
+		User u = new User(clientName, password, dis, dos, CentralServer.userNum);
 		CentralServer.users.add(u);
 
 		try {
-			dos.writeUTF("201: Profile sucessfully created");
+			dos.writeUTF("201: Profile sucessfully created" + CentralServer.userNum);
+			CentralServer.userNum++;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -409,7 +413,7 @@ class ClientHandler implements Runnable {
 		for (User friend : user.friends) {
 			if (CentralServer.onlineUsers.contains(friend)) {
 				try {
-					dos.writeUTF(friend.userName);
+					dos.writeUTF(friend.userName + " " + friend.port);
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -657,18 +661,19 @@ class User {
 	public ArrayList<Post> posts = new ArrayList<Post>();
 
 	// For P2P
-	private int port;
+	public int port;
 
 	/****
 	 * 
 	 * Holds all the information of the User.
 	 * 
 	 ****/
-	public User(String userName, String password, DataInputStream dis, DataOutputStream dos) {
+	public User(String userName, String password, DataInputStream dis, DataOutputStream dos, int port) {
 		this.userName = userName;
 		this.password = password;
 		this.dis = dis;
 		this.dos = dos;
+		this.port = port + 3158;
 	}
 }
 

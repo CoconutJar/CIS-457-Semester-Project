@@ -1,7 +1,11 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -12,10 +16,12 @@ public class Client {
 	private DataOutputStream dos;
 	private DataInputStream dis;
 	// private BufferedReader dis;
-	private ArrayList<String> onlineFriends = new ArrayList<String>();
+	private ArrayList<Friend> onlineFriends = new ArrayList<Friend>();
 	private ArrayList<Status> newsFeed = new ArrayList<Status>();
 	private String userName;
 	private String password;
+
+	private int port;
 
 	public boolean loggedOn;
 
@@ -53,6 +59,10 @@ public class Client {
 		String msg = tokens.nextToken();
 
 		if (stat.startsWith("20")) {
+			tokens = new StringTokenizer(msg, "-");
+			String port2 = tokens.nextToken();
+			port = Integer.parseInt(port2);
+			port += 3158;
 			loggedOn = true;
 			startThread();
 			update();
@@ -113,6 +123,67 @@ public class Client {
 			}
 		});
 		localServer.start();
+		// Handles other clients when they need to get a file from this localServer.
+		Thread recieveFiles = new Thread(new Runnable() {
+			@Override
+			public void run() {
+
+				// Will hold all messages received from server.
+				String chatText = "";
+				ServerSocket sock = null;
+				try {
+					sock = new ServerSocket(port);
+				} catch (NumberFormatException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				} catch (IOException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+
+				// If the client is loggedOff they wont receive any messages.
+				while (loggedOn) {
+
+					// If the socket is still open.
+					// Read the message sent to this client.
+					try {
+						Socket s = sock.accept();
+
+						try {
+
+							DataInputStream datainput = new DataInputStream(s.getInputStream());
+							FileOutputStream fos = new FileOutputStream("file");
+							byte[] buffer = new byte[4096];
+
+							int filesize = 15123; // Send file size in separate msg
+							int read = 0;
+							int totalRead = 0;
+							int remaining = filesize;
+							while ((read = datainput.read(buffer, 0, Math.min(buffer.length, remaining))) > 0) {
+								totalRead += read;
+								remaining -= read;
+								System.out.println("read " + totalRead + " bytes.");
+								fos.write(buffer, 0, read);
+							}
+
+							fos.close();
+							datainput.close();
+							s.close();
+						} catch (IOException e) {
+							e.printStackTrace();
+						}
+
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+
+			}
+		});
+
+		// Start up the local Server.
+		localServer.start();
+		recieveFiles.start();
 	}
 
 	// QUIT = Quit.
@@ -158,6 +229,31 @@ public class Client {
 			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
+		}
+	}
+
+	public void sendFile() {
+
+		// TODO Assign
+		String filename = " ";
+		if (new File(filename).exists()) {
+			try {
+				InetAddress ip = InetAddress.getByName("localhost");
+				Socket sock = new Socket(ip, port);
+				DataOutputStream dos = new DataOutputStream(sock.getOutputStream());
+				FileInputStream fis = new FileInputStream(filename);
+				byte[] buffer = new byte[4096];
+
+				while (fis.read(buffer) > 0) {
+					dos.write(buffer);
+				}
+
+				fis.close();
+				dos.close();
+				sock.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -311,8 +407,11 @@ public class Client {
 			try {
 
 				friendInfo = dis.readUTF();
-
-				onlineFriends.add(friendInfo);
+				StringTokenizer tokens = new StringTokenizer(friendInfo);
+				String user = tokens.nextToken();
+				String port = tokens.nextToken();
+				Friend bud = new Friend(user, port);
+				onlineFriends.add(bud);
 
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -386,4 +485,18 @@ class Status implements Comparable<Status> {
 		return num;
 	}
 
+}
+
+class Friend implements Comparable<Friend> {
+	String userName;
+	String port;
+
+	public Friend(String userName, String port) {
+
+	}
+
+	@Override
+	public int compareTo(Friend f) {
+		return this.userName.compareTo(f.userName);
+	}
 }

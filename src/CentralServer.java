@@ -176,7 +176,7 @@ class ClientHandler implements Runnable {
 
 				// Waits for a command from the client.
 				fromClient = dis.readUTF();
-				StringTokenizer tokens = new StringTokenizer(fromClient);
+				StringTokenizer tokens = new StringTokenizer(fromClient, "%");
 
 				String command = tokens.nextToken();
 
@@ -204,43 +204,43 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("POST")) {
 
-					String msg = tokens.nextToken("%");
+					String msg = tokens.nextToken();
 
 					postStatus(msg);
 
 				} else if (command.equals("SEND")) {
 
 					String to = tokens.nextToken();
-					String msg = tokens.nextToken("%");
+					String msg = tokens.nextToken();
 
 					sendMsg(to, msg);
 
 					// TODO No idea what we are doing with this.
 				} else if (command.equals("BATTLE")) {
 
-					String opponent = tokens.nextToken("%");
+					String opponent = tokens.nextToken();
 
 					for (int i = 0; i < user.friends.size(); i++) {
 						if (user.friends.get(i).userName.equals(opponent)) {
-							user.friends.get(i).dos.writeUTF("BATTLE" + clientName);
+							user.friends.get(i).dos.writeUTF("BATTLE:" + clientName);
 						}
 					}
 
 					// TODO Right now only adds on one user (like Twitter).
 				} else if (command.equals("ADD")) {
 
-					String person = tokens.nextToken("%");
+					String person = tokens.nextToken();
 					addFriend(person);
 
 					// TODO Right now only removes on one user (like Twitter).
 				} else if (command.equals("REMOVE")) {
 
-					String person = tokens.nextToken("%");
+					String person = tokens.nextToken();
 					removeFriend(person);
 
 				} else if (command.equals("LIKE")) {
 
-					String sID = tokens.nextToken("%");
+					String sID = tokens.nextToken();
 					int id = Integer.parseInt(sID);
 					for (Post post : CentralServer.userPosts) {
 						if (post.ID == id)
@@ -249,8 +249,8 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("COMMENT")) {
 
-					String sID = tokens.nextToken("%");
-					String msg = tokens.nextToken("%");
+					String sID = tokens.nextToken();
+					String msg = tokens.nextToken();
 					int id = Integer.parseInt(sID);
 					for (Post post : CentralServer.userPosts) {
 						if (post.ID == id)
@@ -259,7 +259,7 @@ class ClientHandler implements Runnable {
 					// commentStatus(post);
 				} else if (command.equals("GETL")) {
 
-					String sID = tokens.nextToken("%");
+					String sID = tokens.nextToken();
 					int id = Integer.parseInt(sID);
 					for (Post post : CentralServer.userPosts) {
 						if (post.ID == id)
@@ -268,7 +268,7 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("GETC")) {
 
-					String sID = tokens.nextToken("%");
+					String sID = tokens.nextToken();
 					int id = Integer.parseInt(sID);
 					for (Post post : CentralServer.userPosts) {
 						if (post.ID == id)
@@ -281,7 +281,7 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("GROUP")) {
 
-					String userList = tokens.nextToken("%");
+					String userList = tokens.nextToken();
 					formGroupChat(userList);
 
 				} else if (command.equals("LEAVE")) {
@@ -289,14 +289,14 @@ class ClientHandler implements Runnable {
 					String groupName = tokens.nextToken();
 					leaveGroup(groupName);
 
-				} else if (command.equals("REFRESH")) {
+				} else if (fromClient.equals("REFRESH")) {
 
 					updateClientNewsFeed();
 					sendOnlineFriends();
 
 				} else if (command.equals("DELETE")) {
 
-					String sID = tokens.nextToken("%");
+					String sID = tokens.nextToken();
 					int id = Integer.parseInt(sID);
 					for (Post post : CentralServer.userPosts) {
 						if (post.ID == id)

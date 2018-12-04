@@ -13,7 +13,7 @@ public class Client {
 	private DataInputStream dis;
 	// private BufferedReader dis;
 	private ArrayList<String> onlineFriends = new ArrayList<String>();
-	private ArrayList<Status> newsFeed;
+	private ArrayList<Status> newsFeed = new ArrayList<Status>();
 	private String userName;
 	private String password;
 
@@ -109,41 +109,27 @@ public class Client {
 					} catch (IOException e) {
 						e.printStackTrace();
 					}
-					update();
 				}
 			}
 		});
 		localServer.start();
 	}
 
-	/****
-	 * 
-	 * Allows the client to search the Central Server for available files to
-	 * download.
-	 * 
-	 ****/
-	public void addFriend(String userName) {
-		try {
-			dos.writeUTF("ADD" + userName);
-			update();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
-
-	/****
-	 * 
-	 * Returns the List of Available Files.
-	 * 
-	 ****/
-	public void refresh() {
-		try {
-			dos.writeUTF("REFRESH");
-			update();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+	// QUIT = Quit.
+	// POST = Posting to main feed.
+	// SEND = Forwards a message.
+	// BATTLE = Invites a friend to a game.
+	// ADD = Adds a friend.
+	// REMOVE = Remove a friend.
+	// LIKE = Like a statusUpdate.
+	// COMMENT = Comment on a statusUpdate.
+	// GETL = Get users who liked the post.
+	// GETC = Get comments on a post.
+	// GETF = Get Friend List.
+	// GROUP = Start a new group chat with listed users.
+	// LEAVE = Leave group chat.
+	// REFRESH = Refresh news feed and Online Friends.
+	// DELETE = Delete a statusUpdate.
 
 	/****
 	 * 
@@ -161,6 +147,137 @@ public class Client {
 
 		// Ends the thread.
 		loggedOn = false;
+	}
+
+	public void post() {
+
+		// TODO Assign
+		String msg = " ";
+		try {
+			dos.writeUTF("POST%" + msg);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void send() {
+
+		// TODO Assign these
+
+		// Msg Group
+		String to = " ";
+
+		// Msg to send
+		String msg = " ";
+
+		try {
+			dos.writeUTF("SEND%" + to + "%" + msg);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void battle() {
+
+		String opp = " ";
+		try {
+			dos.writeUTF("BATTLE%" + opp);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/****
+	 * 
+	 * Allows the client to search the Central Server for available files to
+	 * download.
+	 * 
+	 ****/
+	public void addFriend(String userName) {
+		try {
+			dos.writeUTF("ADD%" + userName);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void remove() {
+
+		// TODO Assign
+		String userName = " ";
+		try {
+			dos.writeUTF("REMOVE%" + userName);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void like() {
+
+		// TODO Assign
+		String postID = " ";
+		try {
+			dos.writeUTF("LIKE%" + postID);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void comment() {
+
+		// TODO Assign
+		String postID = " ";
+		String comment = " ";
+		try {
+			dos.writeUTF("COMMENT%" + postID + "%" + comment);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void group() {
+
+		// TODO make list of users to msg
+		String list = " ";
+
+		try {
+			dos.writeUTF("GROUP%" + list);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void leave() {
+
+		// TODO Assign
+		String groupChatName = " ";
+		try {
+			dos.writeUTF("LEAVE%" + groupChatName);
+			s.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	/****
+	 * 
+	 * Returns the List of Available Files.
+	 * 
+	 ****/
+	public void refresh() {
+		try {
+			dos.writeUTF("REFRESH");
+			update();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 
 	private void update() {
@@ -204,6 +321,10 @@ public class Client {
 
 		Collections.sort(newsFeed);
 		Collections.sort(onlineFriends);
+
+	}
+
+	public void delete() {
 
 	}
 }

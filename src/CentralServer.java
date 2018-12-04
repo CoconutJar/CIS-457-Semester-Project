@@ -3,6 +3,7 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
 
@@ -24,6 +25,8 @@ public class CentralServer {
 	public static ArrayList<Post> userPosts = new ArrayList<Post>();
 
 	public static ArrayList<Group> groups = new ArrayList<Group>();
+
+	public static int totalPosts = 0;
 
 	public static void main(String[] args) throws IOException {
 		try {
@@ -202,9 +205,8 @@ class ClientHandler implements Runnable {
 				} else if (command.equals("POST")) {
 
 					String msg = tokens.nextToken("%");
-					String time = tokens.nextToken("%");
 
-					postStatus(msg, time);
+					postStatus(msg);
 
 				} else if (command.equals("SEND")) {
 
@@ -238,22 +240,40 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("LIKE")) {
 
-					// TODO find a way to identify a post maybe id?
-					// likeStatus(post);
+					String sID = tokens.nextToken("%");
+					int id = Integer.parseInt(sID);
+					for (Post post : CentralServer.userPosts) {
+						if (post.ID == id)
+							likePost(post);
+					}
 
 				} else if (command.equals("COMMENT")) {
 
-					// TODO find a way to identify a post maybe id?
+					String sID = tokens.nextToken("%");
+					String msg = tokens.nextToken("%");
+					int id = Integer.parseInt(sID);
+					for (Post post : CentralServer.userPosts) {
+						if (post.ID == id)
+							commentPost(post, msg);
+					}
 					// commentStatus(post);
 				} else if (command.equals("GETL")) {
 
-					// TODO find a way to identify a post maybe id?
-					// getLikes(post);
+					String sID = tokens.nextToken("%");
+					int id = Integer.parseInt(sID);
+					for (Post post : CentralServer.userPosts) {
+						if (post.ID == id)
+							getLikes(post);
+					}
 
 				} else if (command.equals("GETC")) {
 
-					// TODO find a way to identify a post maybe id?
-					// getComments(post);
+					String sID = tokens.nextToken("%");
+					int id = Integer.parseInt(sID);
+					for (Post post : CentralServer.userPosts) {
+						if (post.ID == id)
+							getComments(post);
+					}
 
 				} else if (command.equals("GETF")) {
 
@@ -276,8 +296,12 @@ class ClientHandler implements Runnable {
 
 				} else if (command.equals("DELETE")) {
 
-					// TODO find a way to identify a post maybe id?
-					// deleteStatus(post);
+					String sID = tokens.nextToken("%");
+					int id = Integer.parseInt(sID);
+					for (Post post : CentralServer.userPosts) {
+						if (post.ID == id)
+							deletePost(post);
+					}
 
 				}
 
@@ -361,7 +385,7 @@ class ClientHandler implements Runnable {
 			for (Post post : friend.posts) {
 
 				try {
-					dos.writeUTF(post.userName + post.msg + post.time + post.comments.size() + post.likes.size());
+					dos.writeUTF(post.userName + post.msg + post.getTime() + post.comments.size() + post.likes.size());
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -419,14 +443,45 @@ class ClientHandler implements Runnable {
 		}
 	}
 
+	private void getLikes(Post post) {
+		for (User liker : post.likes) {
+			try {
+				dos.writeUTF(liker.userName);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		try {
+			dos.writeUTF("END");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	private void getComments(Post post) {
+		for (Comment com : post.comments) {
+			try {
+				dos.writeUTF(com.user.userName + "%" + com.comment);
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+		try {
+			dos.writeUTF("END");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
 	/**
 	 * 
 	 * @param msg
-	 * @param time
 	 */
-	private synchronized void postStatus(String msg, String time) {
+	private synchronized void postStatus(String msg) {
+		LocalDateTime time = java.time.LocalDateTime.now();
+		int postID = CentralServer.totalPosts++;
 
-		Post post = new Post(user.userName, msg, time);
+		Post post = new Post(user.userName, msg, time.toString(), postID);
 
 		user.posts.add(post);
 		CentralServer.userPosts.add(post);
@@ -434,7 +489,7 @@ class ClientHandler implements Runnable {
 		if (msg.contains("@")) {
 			boolean moreUsers = true;
 			do {
-				String looking = msg.substring(msg.indexOf("@"), msg.length() - 1);
+				String looking = msg.substring(msg.indexOf("@") + 1, msg.length() - 1);
 				StringTokenizer tokens = new StringTokenizer(looking);
 				String tagged = tokens.nextToken();
 				for (User friend : user.friends) {
@@ -450,7 +505,7 @@ class ClientHandler implements Runnable {
 		for (int i = 0; i < user.friends.size(); i++) {
 
 			try {
-				user.friends.get(i).dos.writeUTF("POST" + post.userName + post.msg + post.time);
+				user.friends.get(i).dos.writeUTF("POST" + post.userName + post.msg + post.getTime());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -485,7 +540,7 @@ class ClientHandler implements Runnable {
 	 * 
 	 * @param post
 	 */
-	private synchronized void deleteStatus(Post post) {
+	private synchronized void deletePost(Post post) {
 
 		user.posts.remove(post);
 		CentralServer.userPosts.remove(post);
@@ -623,11 +678,19 @@ class Post {
 	String userName;
 	String msg;
 	String time;
+	int ID;
 
-	public Post(String userName, String msg, String time) {
+	String date;
+	int hour;
+	int min;
+	int sec;
+
+	public Post(String userName, String msg, String time, int ID) {
 		this.userName = userName;
 		this.msg = msg;
 		this.time = time;
+		this.ID = ID;
+		formatTime();
 	}
 
 	public void addComment(User user, String comment) {
@@ -642,6 +705,32 @@ class Post {
 		} else {
 			likes.add(user);
 		}
+
+	}
+
+	private void formatTime() {
+
+		StringTokenizer tokens = new StringTokenizer(time, "T");
+
+		// Used to sort.
+		date = tokens.nextToken();
+		String tempTime = tokens.nextToken();
+		tokens = new StringTokenizer(tempTime, ":");
+		String sHour = tokens.nextToken();
+		String sMin = tokens.nextToken();
+		String sSec = tokens.nextToken();
+
+		hour = Integer.parseInt(sHour);
+		min = Integer.parseInt(sMin);
+		sec = Integer.parseInt(sSec);
+	}
+
+	/**
+	 * 
+	 * @return
+	 */
+	public String getTime() {
+		return hour + "-" + min + "-" + sec;
 
 	}
 

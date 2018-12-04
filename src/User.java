@@ -11,9 +11,11 @@ class User {
     DataOutputStream dos;
 
     public ArrayList<User> friends = new ArrayList<User>();
+    public ArrayList<Post> posts = new ArrayList<Post>();
+
 
     // For P2P
-    private int port;
+    public int port;
 
 
     /****
@@ -21,11 +23,12 @@ class User {
      * Holds all the information of the User.
      *
      ****/
-    public User(String userName, String password, DataInputStream dis, DataOutputStream dos) {
+    public User(String userName, String password, DataInputStream dis, DataOutputStream dos, int port) {
         this.userName = userName;
         this.password = password;
         this.dis = dis;
         this.dos = dos;
+        this.port = port + 3158;
     }
 
     public User(String userName, String password){

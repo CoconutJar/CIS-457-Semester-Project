@@ -23,6 +23,8 @@ public class CentralServer {
 
 	public static ArrayList<User> onlineUsers = new ArrayList<User>();
 
+	public static ArrayList<User> offlineUsers = new ArrayList<User>();
+
 	public static ArrayList<Post> userPosts = new ArrayList<Post>();
 
 	public static ArrayList<Group> groups = new ArrayList<Group>();
@@ -138,6 +140,8 @@ class ClientHandler implements Runnable {
 						dos.writeUTF("200: Sign in Sucessfull-" + CentralServer.userNum);
 						CentralServer.userNum++;
 						notSignedIn = false;
+						CentralServer.onlineUsers.add(user);
+						CentralServer.offlineUsers.remove(user);
 					} else {
 						dos.writeUTF("101: Sign in Failed");
 						System.out.println(clientName + " Failed sign in.");
@@ -166,6 +170,7 @@ class ClientHandler implements Runnable {
 						createProfile();
 						dos.writeUTF("200: Profile creation Sucessfull-" + CentralServer.userNum);
 						notSignedIn = false;
+						CentralServer.onlineUsers.add(user);
 
 					} else {
 						dos.writeUTF("102: User Name is already taken. :( -");
@@ -175,21 +180,19 @@ class ClientHandler implements Runnable {
 				e1.printStackTrace();
 			}
 		}
-		try {
-			connectionSocket.close();
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
-		}
 
+		/*
+		 * try { // connectionSocket.close(); } catch (IOException e1) { // TODO
+		 * Auto-generated catch block e1.printStackTrace(); }
+		 */
 		if (!quit) {
 			// Once client has signed-in.
 			try {
-				ServerSocket mainSocket = new ServerSocket(3159);
-				Socket newSocket = mainSocket.accept();
+				// ServerSocket mainSocket = new ServerSocket(3159);
+				// Socket newSocket = mainSocket.accept();
 				// Set up input and output stream with the client to send and receive messages.
-				this.dis = new DataInputStream(newSocket.getInputStream());
-				this.dos = new DataOutputStream(newSocket.getOutputStream());
+				// this.dis = new DataInputStream(newSocket.getInputStream());
+				// this.dos = new DataOutputStream(newSocket.getOutputStream());
 				// Do while conditional.
 				boolean hasNotQuit = true;
 
@@ -303,6 +306,7 @@ class ClientHandler implements Runnable {
 					} else if (command.equals("GETF")) {
 
 						sendOnlineFriends();
+						sendOfflineFriends();
 
 					} else if (command.equals("GROUP")) {
 
@@ -334,6 +338,8 @@ class ClientHandler implements Runnable {
 
 				// Set the online status to offline.
 				loggedIn = false;
+				CentralServer.onlineUsers.remove(user);
+				CentralServer.offlineUsers.add(user);
 
 				// Close the Socket.
 				connectionSocket.close();
@@ -397,6 +403,9 @@ class ClientHandler implements Runnable {
 					user = CentralServer.users.get(i);
 					System.out.println(user.userName + " has signed in.");
 					signedIn = true;
+					if (CentralServer.offlineUsers.contains(user)) {
+						CentralServer.offlineUsers.remove(user);
+					}
 				}
 		}
 
@@ -445,7 +454,6 @@ class ClientHandler implements Runnable {
 		try {
 			dos.writeUTF("ONLINE");
 		} catch (IOException e1) {
-			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
 		for (User friend : user.friends) {
@@ -464,7 +472,36 @@ class ClientHandler implements Runnable {
 			e.printStackTrace();
 		}
 
-		System.out.println("Finished Updated Friends Feed.");
+		System.out.println("Finished Updated Online Friends Feed.");
+	}
+
+	/**
+	 * 
+	 * 
+	 */
+	private void sendOfflineFriends() {
+		try {
+			dos.writeUTF("OFFLINE");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+		for (User friend : user.friends) {
+			if (CentralServer.offlineUsers.contains(friend)) {
+				try {
+					dos.writeUTF(friend.userName + " " + friend.port);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		try {
+			dos.writeUTF("END");
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+
+		System.out.println("Finished Updated Offline Friends Feed.");
 	}
 
 	/**

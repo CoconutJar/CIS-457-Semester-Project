@@ -51,17 +51,8 @@ public class HomeController implements Initializable {
 	private ListView<String> onlineFriendsListView;
 	@FXML
 	private ListView<String> offlineFriendsListView;
-	@FXML
-	private ListView<String> searchUsersListView;
-	@FXML
-	private Button assignGrpNameBtn, searchUsersBtn;
-	@FXML
-	private Label searchUsersCloseBtn;
-	@FXML
-	private TextField groupNameTextField, searchUsersTextField;
 
 	private int port;
-	private String textarea;
 
 	private Socket newSock;
 	private boolean loggedOn = true;
@@ -97,6 +88,8 @@ public class HomeController implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
+		onlineFriends.add(new Friend("johndoe", "5234"));
+		onlineFriends.add(new Friend("myuser", "6093"));
 
 		for (Friend onlineFriend : onlineFriends) {
 			onlineFriendsListView.getItems().add(onlineFriend.userName);
@@ -125,20 +118,10 @@ public class HomeController implements Initializable {
 	}
 
 	private void sendPostBtnClicked() {
-		textarea = mainTextArea.getText();
+		String textarea = mainTextArea.getText();
 		String textfield = mainTextField.getText();
-
 		if (textfield != null) {
-			if (textfield.startsWith("ADD:")) {
-				int count = textfield.indexOf(":");
-				String friend = textfield.substring(count + 1);
-				addFriend(friend);
-			} else if (textfield.startsWith("REFRESH")) {
-				refresh();
-			} else {
-				mainTextArea.setText(textarea + "\n\n" + username + ": " + textfield);
-				post(textfield);
-			}
+			mainTextArea.setText(textarea + "\n\n" + username + ": " + textfield);
 		}
 		mainTextField.setText("");
 	}
@@ -190,7 +173,6 @@ public class HomeController implements Initializable {
 
 							// TODO show alert
 							String alert = tokens.nextToken();
-							mainTextArea.setText(textarea + "\n\n" + "Notification" + ": " + alert);
 
 						} else if (command.equals("MESSAGE")) {
 							String messageString = tokens.nextToken();
@@ -202,7 +184,6 @@ public class HomeController implements Initializable {
 
 						} else if (command.equals("POST")) {
 
-							System.out.println("Post Recieved!");
 							String messageString = tokens.nextToken();
 							tokens = new StringTokenizer(messageString, "%");
 
@@ -212,8 +193,6 @@ public class HomeController implements Initializable {
 							String id = tokens.nextToken();
 
 							Status newStatus = new Status(poster, message, time, "0", "0", id);
-
-							mainTextArea.setText(textarea + "\n\n" + poster + ": " + message + " at " + time);
 
 							// TODO display newsFeed.
 							newsFeed.add(newStatus);
@@ -275,7 +254,6 @@ public class HomeController implements Initializable {
 
 							Collections.sort(onlineFriends);
 							for (Friend onlineFriend : onlineFriends) {
-								System.out.println(onlineFriend.userName + "USER NAME");
 								onlineFriendsListView.getItems().add(onlineFriend.userName);
 							}
 							System.out.println("Updated online friends");
@@ -413,8 +391,10 @@ public class HomeController implements Initializable {
 		loggedOn = false;
 	}
 
-	public void post(String msg) {
+	public void post() {
 
+		// TODO Assign
+		String msg = " ";
 		try {
 			dos.writeUTF("POST%" + msg);
 		} catch (IOException e) {
@@ -483,8 +463,6 @@ public class HomeController implements Initializable {
 	public void addFriend(String userName) {
 		try {
 			dos.writeUTF("ADD%" + userName);
-			System.out.println("Adding " + userName);
-			dos.writeUTF("REFRESH");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -607,7 +585,7 @@ class Status implements Comparable<Status> {
 	public String numLikes;
 	public int hour;
 	public int min;
-	public double sec;
+	public int sec;
 
 	public Status(String name, String msg, String time, String numComments, String numLikes, String id) {
 		this.name = name;
@@ -623,7 +601,8 @@ class Status implements Comparable<Status> {
 		StringTokenizer tokens = new StringTokenizer(time, "-");
 
 		// Used to sort.
-		System.out.println(time);
+		String tempTime = tokens.nextToken();
+		tokens = new StringTokenizer(tempTime, ":");
 
 		String sHour = tokens.nextToken();
 		String sMin = tokens.nextToken();
@@ -631,7 +610,7 @@ class Status implements Comparable<Status> {
 
 		hour = Integer.parseInt(sHour);
 		min = Integer.parseInt(sMin);
-		sec = Double.parseDouble(sSec);
+		sec = Integer.parseInt(sSec);
 
 	}
 

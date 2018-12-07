@@ -79,7 +79,7 @@ public class LoginController implements Initializable {
 		String status = tokens.nextToken();
 		String msg = tokens.nextToken();
 
-		if (!status.startsWith("200:")) {
+		if (status.startsWith("20")) {
 			System.out.println("Sucess: " + msg);
 			FXMLLoader loader = new FXMLLoader();
 			loader.setLocation(getClass().getResource("home.fxml"));

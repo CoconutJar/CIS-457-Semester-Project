@@ -425,7 +425,6 @@ class ClientHandler implements Runnable {
 		}
 		if (!user.friends.isEmpty()) {
 			for (User friend : user.friends) {
-				System.out.println("hi");
 				for (Post post : friend.posts) {
 
 					try {
@@ -436,7 +435,7 @@ class ClientHandler implements Runnable {
 					}
 				}
 			}
-			System.out.println(user.friends.size());
+			System.out.println("Sent to " + user.friends.size() + " users.");
 		}
 		System.out.println("Finished Update News Feed.");
 		try {
@@ -589,6 +588,7 @@ class ClientHandler implements Runnable {
 			try {
 				user.friends.get(i).dos
 						.writeUTF("POST:" + post.userName + "%" + post.msg + "%" + post.getTime() + "%" + postID);
+				System.out.println("SENT POST");
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -775,7 +775,7 @@ class Post {
 	String date;
 	int hour;
 	int min;
-	int sec;
+	double sec;
 
 	public Post(String userName, String msg, String time, int ID) {
 		this.userName = userName;
@@ -814,7 +814,7 @@ class Post {
 
 		hour = Integer.parseInt(sHour);
 		min = Integer.parseInt(sMin);
-		sec = Integer.parseInt(sSec);
+		sec = Double.parseDouble(sSec);
 	}
 
 	/**

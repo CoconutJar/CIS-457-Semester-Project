@@ -53,6 +53,7 @@ public class HomeController implements Initializable {
 	private ListView<String> offlineFriendsListView;
 
 	private int port;
+	private String textarea;
 
 	private Socket newSock;
 	private boolean loggedOn = true;
@@ -88,8 +89,6 @@ public class HomeController implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
-		onlineFriends.add(new Friend("johndoe", "5234"));
-		onlineFriends.add(new Friend("myuser", "6093"));
 
 		for (Friend onlineFriend : onlineFriends) {
 			onlineFriendsListView.getItems().add(onlineFriend.userName);
@@ -121,9 +120,17 @@ public class HomeController implements Initializable {
 		String textarea = mainTextArea.getText();
 		String textfield = mainTextField.getText();
 		if (textfield != null) {
-			mainTextArea.setText(textarea + "\n\n" + username + ": " + textfield);
+			if (textfield.startsWith("ADD:")) {
+				int count = textfield.indexOf(":");
+				String friend = textfield.substring(count + 1);
+				addFriend(friend);
+			} else if (textfield.startsWith("REFRESH")) {
+				refresh();
+			} else {
+				mainTextArea.setText(textarea + "\n\n" + username + ": " + textfield);
+				post(textfield);
+			}
 		}
-		mainTextField.setText("");
 	}
 
 	private void startChat() {
@@ -173,6 +180,7 @@ public class HomeController implements Initializable {
 
 							// TODO show alert
 							String alert = tokens.nextToken();
+							mainTextArea.setText(textarea + "\n\n" + "Notification" + ": " + alert);
 
 						} else if (command.equals("MESSAGE")) {
 							String messageString = tokens.nextToken();
@@ -193,6 +201,7 @@ public class HomeController implements Initializable {
 							String id = tokens.nextToken();
 
 							Status newStatus = new Status(poster, message, time, "0", "0", id);
+							mainTextArea.setText(textarea + "\n\n" + poster + ": " + message + " sent at" + time);
 
 							// TODO display newsFeed.
 							newsFeed.add(newStatus);
@@ -221,6 +230,7 @@ public class HomeController implements Initializable {
 									String likes = tokens2.nextToken();
 									String ID = tokens2.nextToken();
 									Status newStatus = new Status(user, msg, time, comments, likes, ID);
+									mainTextArea.setText(textarea + "\n\n" + user + ": " + msg + " sent at" + time);
 
 									newsFeed.add(newStatus);
 
@@ -391,10 +401,7 @@ public class HomeController implements Initializable {
 		loggedOn = false;
 	}
 
-	public void post() {
-
-		// TODO Assign
-		String msg = " ";
+	public void post(String msg) {
 		try {
 			dos.writeUTF("POST%" + msg);
 		} catch (IOException e) {
@@ -463,6 +470,8 @@ public class HomeController implements Initializable {
 	public void addFriend(String userName) {
 		try {
 			dos.writeUTF("ADD%" + userName);
+			System.out.println("Adding " + userName);
+			dos.writeUTF("REFRESH");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -585,7 +594,7 @@ class Status implements Comparable<Status> {
 	public String numLikes;
 	public int hour;
 	public int min;
-	public int sec;
+	public double sec;
 
 	public Status(String name, String msg, String time, String numComments, String numLikes, String id) {
 		this.name = name;
@@ -601,16 +610,13 @@ class Status implements Comparable<Status> {
 		StringTokenizer tokens = new StringTokenizer(time, "-");
 
 		// Used to sort.
-		String tempTime = tokens.nextToken();
-		tokens = new StringTokenizer(tempTime, ":");
-
 		String sHour = tokens.nextToken();
 		String sMin = tokens.nextToken();
 		String sSec = tokens.nextToken();
 
 		hour = Integer.parseInt(sHour);
 		min = Integer.parseInt(sMin);
-		sec = Integer.parseInt(sSec);
+		sec = Double.parseDouble(sSec);
 
 	}
 

@@ -1,3 +1,4 @@
+import java.awt.TextField;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.EOFException;
@@ -14,13 +15,16 @@ import java.util.Collections;
 import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 
+import javafx.collections.ObservableList;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.Button;
+import javafx.scene.control.ContextMenu;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
+import javafx.scene.control.SelectionMode;
 import javafx.stage.Stage;
 
 public class HomeController implements Initializable {
@@ -31,12 +35,18 @@ public class HomeController implements Initializable {
 	@FXML
 	private MenuItem logoutBtn;
 	@FXML
-	private ListView onlineFriendsListView, offlineFriendsListView, chatsListView;
+	private ListView chatsListView;
 	@FXML
 	private Button searchFriendBtn, newChatBtn;
 	@FXML
 	private Label hubLabel;
 	@FXML
+	private TextField searchField;
+	@FXML
+	private ListView<String> onlineFriendsListView;
+	@FXML
+	private ListView<String> offlineFriendsListView;
+
 	private int port;
 
 	private Socket newSock;
@@ -44,6 +54,7 @@ public class HomeController implements Initializable {
 	private DataOutputStream dos;
 	private DataInputStream dis;
 	private ArrayList<Friend> onlineFriends = new ArrayList<Friend>();
+	private ArrayList<Friend> offlineFriends = new ArrayList<>();
 	private ArrayList<Status> newsFeed = new ArrayList<Status>();
 
 	// Data received from ConnectController
@@ -72,6 +83,38 @@ public class HomeController implements Initializable {
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
 
+		for (Friend onlineFriend : onlineFriends) {
+			onlineFriendsListView.getItems().add(onlineFriend.userName);
+		}
+		// Populates GUI ListView with usernames of all Users in ArrayList<User>
+		// offlineFriendsList
+		for (Friend offlineFriend : offlineFriends) {
+			offlineFriendsListView.getItems().add(offlineFriend.userName);
+		}
+
+		// Allows user to select multiple Users to begin group chat with or send message
+		// to
+		onlineFriendsListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+
+		// Creates "Right Click" menu options for online friends in GUI ListView
+		MenuItem mi1 = new MenuItem("Start Chat");
+		mi1.setOnAction(e -> startChat());
+		MenuItem mil2 = new MenuItem("Send File");
+		mil2.setOnAction(e -> sendFile());
+		ContextMenu menu = new ContextMenu();
+		menu.getItems().add(mi1);
+		onlineFriendsListView.setContextMenu(menu);
+
+	}
+
+	private void startChat() {
+		ObservableList<String> onFriends;
+		// Gets list of all Online Friends selected
+		onFriends = onlineFriendsListView.getSelectionModel().getSelectedItems();
+
+		for (String m : onFriends) {
+			System.out.println("Selected friend: " + m);
+		}
 	}
 
 	private void sessionAttributes() {
@@ -80,6 +123,7 @@ public class HomeController implements Initializable {
 
 	public void searchFriendBtnPushed() {
 		System.out.println("Search Friend Button Pressed.");
+		addFriend(searchField.getText());
 	}
 
 	public void newChatBtnPushed() {
@@ -88,6 +132,8 @@ public class HomeController implements Initializable {
 
 	public void logoutBtnPushed() {
 		Stage stage = (Stage) hubLabel.getScene().getWindow();
+		loggedOn = false;
+		quit();
 		System.out.println("Application closed.");
 		stage.close();
 		System.exit(1);
@@ -101,7 +147,10 @@ public class HomeController implements Initializable {
 						String fromServer = dis.readUTF();
 						StringTokenizer tokens = new StringTokenizer(fromServer, ": ");
 						String command = tokens.nextToken();
-						if (command.equals("ALERT")) {
+						if (command.equals("QUIT")) {
+							loggedOn = false;
+							newSock.close();
+						} else if (command.equals("ALERT")) {
 
 							// TODO show alert
 							String alert = tokens.nextToken();
@@ -286,7 +335,7 @@ public class HomeController implements Initializable {
 
 		try {
 			dos.writeUTF("QUIT");
-			newSock.close();
+			loggedOn = false;
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

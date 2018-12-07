@@ -117,6 +117,7 @@ class ClientHandler implements Runnable {
 				connectionString = dis.readUTF();
 
 				if (connectionString.equals("QUIT")) {
+					dos.writeUTF("QUIT");
 					connectionSocket.close();
 					quit = true;
 					break;
@@ -348,7 +349,7 @@ class ClientHandler implements Runnable {
 	// helpers
 
 	/**
-	 * Creates a profile.
+	 * Creates a profile. And assigns the user.
 	 */
 	private synchronized void createProfile() {
 
@@ -410,11 +411,9 @@ class ClientHandler implements Runnable {
 		try {
 			dos.writeUTF("UPDATE");
 			dos.flush();
-			System.out.println("Updated News Feed.");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
-		System.out.println("Finished Updated News Feed.");
 		if (!user.friends.isEmpty()) {
 			for (User friend : user.friends) {
 				System.out.println("hi");
@@ -430,7 +429,7 @@ class ClientHandler implements Runnable {
 			}
 			System.out.println(user.friends.size());
 		}
-		System.out.println("Finished Updated News Feed.");
+		System.out.println("Finished Update News Feed.");
 		try {
 			dos.writeUTF("END");
 		} catch (IOException e) {
@@ -464,6 +463,8 @@ class ClientHandler implements Runnable {
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+
+		System.out.println("Finished Updated Friends Feed.");
 	}
 
 	/**

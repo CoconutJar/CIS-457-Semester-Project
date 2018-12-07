@@ -71,5 +71,36 @@ public class LoginController implements Initializable{
 
         window.show();
     }
+
+    // TODO: Modify to handle new user
+    public void createNewBtnClicked(ActionEvent event) throws IOException {
+        printConnectInput();
+        User user = new User(unTextfield.getText(), pwTextfield.getText());
+
+        FXMLLoader loader = new FXMLLoader();
+        loader.setLocation(getClass().getResource("home.fxml"));
+        Parent fileTableParent = loader.load();
+
+        // Setup for window (stage) change.
+        Scene fileTableScene = new Scene(fileTableParent);
+
+        HomeController controller = loader.getController();
+        controller.initData(user, unTextfield.getText(), pwTextfield.getText());
+
+        Stage window = (Stage) ((Node) event.getSource()).getScene().getWindow();
+        window.setScene(fileTableScene);
+
+        // Handles "click and drag" functionality of window
+        fileTableParent.setOnMousePressed(e -> {
+            x = e.getSceneX();
+            y = e.getSceneY();
+        });
+        fileTableParent.setOnMouseDragged(e -> {
+            window.setX(e.getScreenX() - x);
+            window.setY(e.getScreenY() - y);
+        });
+
+        window.show();
+    }
 }
 

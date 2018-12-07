@@ -20,15 +20,17 @@ public class HomeController implements Initializable {
     @FXML private ListView<String> onlineFriendsListView;
     @FXML private ListView<String> offlineFriendsListView;
     @FXML private ListView<String> chatListView;
-    @FXML private Button searchFriendBtn, newChatBtn, assignGrpNameBtn, sendPostBtn;
-    @FXML private Label hubLabel;
-    @FXML private TextField groupNameTextField;
+    @FXML private ListView<String> searchUsersListView;
+    @FXML private Button searchFriendBtn, newChatBtn, assignGrpNameBtn, sendPostBtn, searchUsersBtn;
+    @FXML private Label hubLabel, searchUsersCloseBtn;
+    @FXML private TextField groupNameTextField, searchUsersTextField;
     @FXML private TextArea mainTextArea, mainTextField;
-    @FXML private AnchorPane assignGrpNamePane, friendPane, chatPane;
+    @FXML private AnchorPane assignGrpNamePane, friendPane, chatPane, searchUsersPane;
 
     // TESTING
     private ArrayList<User> onlineFriendsList = new ArrayList<>();
     private ArrayList<User> offlineFriendsList = new ArrayList<>();
+    private ArrayList<User> allUsersList = new ArrayList<>();
     private ArrayList<Group> chatList = new ArrayList<>();
     // ^^TESTING^^
 
@@ -63,14 +65,23 @@ public class HomeController implements Initializable {
         // Populates GUI ListView with usernames of all Users in ArrayList<User> onlineFriendsList
         for (User onlineFriend : onlineFriendsList) {
             onlineFriendsListView.getItems().add(onlineFriend.userName);
+
+            // TESTING
+            allUsersList.add(onlineFriend);
         }
         // Populates GUI ListView with usernames of all Users in ArrayList<User> offlineFriendsList
         for (User offlineFriend : offlineFriendsList) {
             offlineFriendsListView.getItems().add(offlineFriend.userName);
+
+            // TESTING
+            allUsersList.add(offlineFriend);
         }
         for (Group group : chatList) {
             chatListView.getItems().add(group.name);
         }
+
+        // TESTING
+        allUsersList.add(new User("notfriendyet", "password"));
 
         // Allows user to select multiple Users to begin group chat with or send message to
         onlineFriendsListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
@@ -137,6 +148,8 @@ public class HomeController implements Initializable {
         // Able/Disable Panes
         friendPane.setDisable(true);
         chatPane.setDisable(true);
+        mainTextField.setDisable(true);
+        mainTextArea.setDisable(true);
         assignGrpNamePane.setVisible(true);
 
         // On 'Assign' button click
@@ -147,6 +160,8 @@ public class HomeController implements Initializable {
             assignGrpNamePane.setVisible(false);
             friendPane.setDisable(false);
             chatPane.setDisable(false);
+            mainTextField.setDisable(false);
+            mainTextArea.setDisable(false);
 
             // Adds Users to ArrayList based on username string search
             for(String m : onFriends){
@@ -188,12 +203,51 @@ public class HomeController implements Initializable {
         unLabel.setText(username);
     }
 
+    // Search Friend button pushed
+    // Handles user search with option to add as friend
     public void searchFriendBtnPushed(){
         System.out.println("Search Friend Button Pressed.");
+
+        searchUsersPane.setVisible(true);
+        friendPane.setDisable(true);
+        chatPane.setDisable(true);
+        mainTextField.setDisable(true);
+        mainTextArea.setDisable(true);
+
+        // Fill ListView with search results
+        searchUsersBtn.setOnAction(event -> {
+            searchUsersListView.getItems().clear();
+
+            String search = searchUsersTextField.getText();
+
+            for(User user : allUsersList){
+                if(user.userName.toLowerCase().contains(search.toLowerCase())){
+                    searchUsersListView.getItems().add(user.userName);
+                }
+            }
+        });
+
+        // Right Click on ListView item to Add Friend
+        MenuItem mil = new MenuItem("Add Friend");
+        mil.setOnAction(e -> {
+            String name = searchUsersListView.getSelectionModel().getSelectedItem();
+
+            for(User user : allUsersList){
+                if(user.userName.equals(name)){
+                    addFriend(user);
+                }
+            }
+        });
+        ContextMenu menu = new ContextMenu();
+        menu.getItems().add(mil);
+        searchUsersListView.setContextMenu(menu);
     }
 
-    public void newChatBtnPushed(){
-        System.out.println("New Chat Button Pressed.");
+    // Add User to friends
+    private void addFriend(User user) {
+        System.out.println(user.userName + " added to friends.");
+
+        // TODO: add this user to Friends List
     }
 
     public void logoutBtnPushed(){
@@ -201,5 +255,12 @@ public class HomeController implements Initializable {
         System.out.println("Application closed.");
         stage.close();
         System.exit(1);
+    }
+    public void searchUsersCloseBtnClicked(){
+        searchUsersPane.setVisible(false);
+        friendPane.setDisable(false);
+        chatPane.setDisable(false);
+        mainTextField.setDisable(false);
+        mainTextArea.setDisable(false);
     }
 }

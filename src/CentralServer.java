@@ -169,11 +169,13 @@ class ClientHandler implements Runnable {
 
 						createProfile();
 						dos.writeUTF("200: Profile creation Sucessfull-" + CentralServer.userNum);
+						System.out.println(clientName + " signed in. Profile created");
 						notSignedIn = false;
 						CentralServer.onlineUsers.add(user);
 
 					} else {
 						dos.writeUTF("102: User Name is already taken. :( -");
+						System.out.println(clientName + " Failed sign in. Name taken");
 					}
 				}
 			} catch (IOException e1) {
@@ -233,6 +235,7 @@ class ClientHandler implements Runnable {
 					} else if (command.equals("POST")) {
 
 						String msg = tokens.nextToken();
+						System.out.println(msg);
 
 						postStatus(msg);
 
@@ -322,6 +325,7 @@ class ClientHandler implements Runnable {
 
 						updateClientNewsFeed();
 						sendOnlineFriends();
+						sendOfflineFriends();
 
 					} else if (command.equals("DELETE")) {
 
@@ -425,7 +429,6 @@ class ClientHandler implements Runnable {
 		}
 		if (!user.friends.isEmpty()) {
 			for (User friend : user.friends) {
-				System.out.println("hi");
 				for (Post post : friend.posts) {
 
 					try {
@@ -574,9 +577,11 @@ class ClientHandler implements Runnable {
 				String looking = msg.substring(msg.indexOf("@") + 1, msg.length() - 1);
 				StringTokenizer tokens = new StringTokenizer(looking);
 				String tagged = tokens.nextToken();
+				System.out.println("Looking for tagged user...");
 				for (User friend : user.friends) {
 					if (tagged.equals(friend.userName)) {
 						sendNotification(tagged, user.userName + " has tagged you in a post!");
+						System.out.println("Sent Tagged Alert");
 					}
 					break;
 				}
@@ -587,8 +592,10 @@ class ClientHandler implements Runnable {
 		for (int i = 0; i < user.friends.size(); i++) {
 
 			try {
+				System.out.println(user.friends.get(i).userName);
 				user.friends.get(i).dos
 						.writeUTF("POST:" + post.userName + "%" + post.msg + "%" + post.getTime() + "%" + postID);
+				System.out.println("POSTED! " + post.userName + "%" + post.msg + "%" + post.getTime() + "%" + postID);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -642,6 +649,7 @@ class ClientHandler implements Runnable {
 				// Adds person to user friends list.
 				user.friends.add(CentralServer.users.get(i));
 				sendNotification(person, user.userName + " is now following you!");
+				System.out.println(user.userName + " Added " + person);
 			}
 		}
 	}
@@ -775,7 +783,7 @@ class Post {
 	String date;
 	int hour;
 	int min;
-	int sec;
+	double sec;
 
 	public Post(String userName, String msg, String time, int ID) {
 		this.userName = userName;
@@ -814,7 +822,7 @@ class Post {
 
 		hour = Integer.parseInt(sHour);
 		min = Integer.parseInt(sMin);
-		sec = Integer.parseInt(sSec);
+		sec = Double.parseDouble(sSec);
 	}
 
 	/**

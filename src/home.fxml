@@ -6,12 +6,10 @@
 <?import javafx.scene.control.ListView?>
 <?import javafx.scene.control.MenuButton?>
 <?import javafx.scene.control.MenuItem?>
-<?import javafx.scene.control.TextArea?>
-<?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TitledPane?>
 <?import javafx.scene.layout.AnchorPane?>
 
-<AnchorPane fx:id="mainPane" prefHeight="700.0" prefWidth="1200.0" style="-fx-background-color: #2c3e50;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="HomeController">
+<AnchorPane prefHeight="700.0" prefWidth="1200.0" style="-fx-background-color: #2c3e50;" xmlns="http://javafx.com/javafx/8.0.171" xmlns:fx="http://javafx.com/fxml/1" fx:controller="HomeController">
    <children>
       <AnchorPane prefHeight="75.0" prefWidth="1200.0">
          <children>
@@ -25,16 +23,16 @@
       </AnchorPane>
       <AnchorPane layoutY="75.0" prefHeight="625.0" prefWidth="1200.0">
          <children>
-            <AnchorPane fx:id="friendPane" prefHeight="625.0" prefWidth="217.0" style="-fx-background-color: #34495e;">
+            <AnchorPane prefHeight="625.0" prefWidth="250.0" style="-fx-background-color: #34495e;">
                <children>
                   <Label layoutX="96.0" layoutY="14.0" prefHeight="25.0" prefWidth="59.0" style="-fx-font-weight: 700; -fx-font-size: 16;" text="friends" textAlignment="CENTER" textFill="WHITE" />
                   <Accordion layoutY="50.0" prefHeight="475.0" prefWidth="250.0" style="-fx-background-color: #34495e; -fx-border-width: 0;" stylesheets="@style.css">
                     <panes>
                       <TitledPane animated="false" prefHeight="423.0" prefWidth="250.0" style="-fx-font-weight: 700;" text="Online" textFill="WHITE">
                         <content>
-                          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="424.0" prefWidth="209.0">
+                          <AnchorPane minHeight="0.0" minWidth="0.0" prefHeight="59.0" prefWidth="250.0">
                                  <children>
-                                    <ListView fx:id="onlineFriendsListView" layoutX="-1.0" layoutY="-1.0" prefHeight="427.0" prefWidth="250.0" />
+                                    <ListView fx:id="onlineFriendsListView" prefHeight="427.0" prefWidth="250.0" />
                                  </children>
                               </AnchorPane>
                         </content>
@@ -50,33 +48,17 @@
                       </TitledPane>
                     </panes>
                   </Accordion>
-                  <Button fx:id="searchFriendBtn" layoutX="13.0" layoutY="560.0" mnemonicParsing="false" onAction="#searchFriendBtnPushed" prefHeight="27.0" prefWidth="225.0" style="-fx-font-weight: 700; -fx-background-color: #34495e; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="Search Friend" textFill="WHITE" />
+                  <Button fx:id="searchFriendBtn" layoutX="13.0" layoutY="571.0" mnemonicParsing="false" onAction="#searchFriendBtnPushed" prefHeight="27.0" prefWidth="225.0" style="-fx-font-weight: 700; -fx-background-color: #34495e; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="Search Friend" textFill="WHITE" />
                </children>
             </AnchorPane>
-            <AnchorPane fx:id="chatPane" layoutX="950.0" prefHeight="625.0" prefWidth="250.0" style="-fx-background-color: #34495e;">
+            <AnchorPane layoutX="950.0" prefHeight="625.0" prefWidth="250.0" style="-fx-background-color: #34495e;">
                <children>
                   <Label layoutX="103.0" layoutY="14.0" prefHeight="25.0" prefWidth="45.0" style="-fx-font-weight: 700; -fx-font-size: 16;" text="chats" textAlignment="CENTER" textFill="WHITE" />
-                  <Button fx:id="newChatBtn" layoutX="13.0" layoutY="560.0" mnemonicParsing="false" onAction="#newChatBtnPushed" prefHeight="27.0" prefWidth="225.0" style="-fx-font-weight: 700; -fx-background-color: #34495e; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="New Chat" textFill="WHITE" />
-                  <ListView fx:id="chatListView" layoutY="50.0" prefHeight="475.0" prefWidth="250.0" />
+                  <Button fx:id="newChatBtn" layoutX="13.0" layoutY="571.0" mnemonicParsing="false" onAction="#newChatBtnPushed" prefHeight="27.0" prefWidth="225.0" style="-fx-font-weight: 700; -fx-background-color: #34495e; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="New Chat" textFill="WHITE" />
+                  <ListView fx:id="chatsListView" layoutY="50.0" prefHeight="475.0" prefWidth="250.0" style="-fx-background-color: transparent;" />
                </children>
             </AnchorPane>
-            <AnchorPane layoutX="250.0" prefHeight="625.0" prefWidth="700.0" style="-fx-background-color: #ffffff;">
-               <children>
-                  <AnchorPane fx:id="assignGrpNamePane" layoutX="182.0" layoutY="249.0" prefHeight="100.0" prefWidth="366.0" style="-fx-background-color: #34495e;" visible="false">
-                     <children>
-                        <Label layoutX="14.0" layoutY="14.0" prefHeight="25.0" prefWidth="102.0" style="-fx-font-weight: 700; -fx-font-size: 16;" text="Group Name" textAlignment="CENTER" textFill="WHITE" />
-                        <TextField fx:id="groupNameTextField" layoutX="14.0" layoutY="48.0" prefHeight="32.0" prefWidth="250.0" />
-                        <Button fx:id="assignGrpNameBtn" layoutX="276.0" layoutY="48.0" mnemonicParsing="false" prefHeight="32.0" prefWidth="82.0" style="-fx-font-weight: 700; -fx-background-color: #34495e; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="Assign" textFill="WHITE" />
-                     </children>
-                  </AnchorPane>
-                  <AnchorPane layoutY="525.0" prefHeight="100.0" prefWidth="700.0" style="-fx-background-color: #2c3e50;">
-                     <children>
-                        <Button fx:id="sendPostBtn" layoutX="624.0" layoutY="36.0" mnemonicParsing="false" prefHeight="32.0" prefWidth="69.0" style="-fx-font-weight: 700; -fx-background-color: #2c3e50; -fx-font-size: 14; -fx-border-color: #ffffff; -fx-border-radius: 20;" text="Send" textFill="WHITE" />
-                        <TextArea fx:id="mainTextField" layoutX="14.0" layoutY="14.0" prefHeight="75.0" prefWidth="598.0" />
-                     </children>
-                  </AnchorPane>
-                  <TextArea fx:id="mainTextArea" prefHeight="524.0" prefWidth="700.0" />
-               </children></AnchorPane>
+            <AnchorPane layoutX="250.0" prefHeight="625.0" prefWidth="700.0" style="-fx-background-color: #ffffff;" />
          </children>
       </AnchorPane>
    </children>

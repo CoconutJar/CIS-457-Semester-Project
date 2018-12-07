@@ -1,0 +1,19 @@
+.text-input{
+    -fx-text-fill: #fff;
+}
+
+@font-face{
+    font-family: 'Roboto', sans-serif;
+    src: url('https://fonts.googleapis.com/css?family=Roboto:700');
+}
+.robotofont{
+    -fx-font-family: "Roboto";
+}
+
+.accordion .titled-pane > *.content{
+    -fx-background-color: transparent ;
+}
+
+.accordion .titled-pane .title {
+    -fx-background-color: transparent ;
+}

@@ -1,5 +1,6 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.EOFException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
@@ -7,70 +8,88 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.ResourceBundle;
 import java.util.StringTokenizer;
 
-public class Client {
-	private Socket s;
-	private DataOutputStream dos;
-	private DataInputStream dis;
-	// private BufferedReader dis;
-	private ArrayList<Friend> onlineFriends = new ArrayList<Friend>();
-	private ArrayList<Status> newsFeed = new ArrayList<Status>();
-	private String userName;
-	private String password;
+import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
+import javafx.scene.control.Button;
+import javafx.scene.control.Label;
+import javafx.scene.control.ListView;
+import javafx.scene.control.MenuButton;
+import javafx.scene.control.MenuItem;
+import javafx.stage.Stage;
 
+public class HomeController implements Initializable {
+	@FXML
+	private String username, password;
+	@FXML
+	private MenuButton unLabel;
+	@FXML
+	private MenuItem logoutBtn;
+	@FXML
+	private ListView onlineFriendsListView, offlineFriendsListView, chatsListView;
+	@FXML
+	private Button searchFriendBtn, newChatBtn;
+	@FXML
+	private Label hubLabel;
+	@FXML
 	private int port;
 
-	public boolean loggedOn;
+	private Socket s;
+	private boolean loggedOn = true;
+	private DataOutputStream dos;
+	private DataInputStream dis;
+	private ArrayList<Friend> onlineFriends = new ArrayList<Friend>();
+	private ArrayList<Status> newsFeed = new ArrayList<Status>();
 
-	/****
-	 * 
-	 * Forms a connection to the Centralized_Server and starts the local server
-	 * thread.
-	 * 
-	 * @throws IOException
-	 * 
-	 ****/
-	public Client() throws IOException {
-		InetAddress ip = InetAddress.getByName("localhost");
-		// Connection to server.
-		s = new Socket(ip, 3158);
-
+	// Data received from ConnectController
+	public void initData(Socket s, DataInputStream dis, DataOutputStream dos, int port, String username,
+			String password) {
+		this.username = username;
+		this.password = password;
 		// Set up input and output stream to send and receive messages.
-		dis = new DataInputStream(s.getInputStream());
-
-		dos = new DataOutputStream(s.getOutputStream());
+		InetAddress ip;
+		// Connection to server.
+		try {
+			ip = InetAddress.getByName("localhost");
+			this.dis = new DataInputStream(s.getInputStream());
+			this.dos = new DataOutputStream(s.getOutputStream());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		startThread();
+		// update();
+		// Set connection session attributes banner
+		sessionAttributes();
 	}
 
-	public String signIn(String status, String userName, String password) throws IOException {
+	@Override
+	public void initialize(URL location, ResourceBundle resources) {
 
-		// IP of the server to connect to.
-		this.userName = userName;
-		this.password = password;
-		// Sends the initial connectionString that holds information about the client.
-		dos.writeUTF(status + " " + userName + " " + password);
+	}
 
-		String response = dis.readUTF();
+	private void sessionAttributes() {
+		unLabel.setText(username);
+	}
 
-		StringTokenizer tokens = new StringTokenizer(response, ": ");
-		String stat = tokens.nextToken();
-		String msg = tokens.nextToken();
+	public void searchFriendBtnPushed() {
+		System.out.println("Search Friend Button Pressed.");
+	}
 
-		if (stat.startsWith("20")) {
-			tokens = new StringTokenizer(msg, "-");
-			String port2 = tokens.nextToken();
-			port = Integer.parseInt(port2);
-			port += 3158;
-			loggedOn = true;
-			startThread();
-			update();
-			return "200" + msg;
-		} else {
-			return "100" + msg;
-		}
+	public void newChatBtnPushed() {
+		System.out.println("New Chat Button Pressed.");
+	}
 
+	public void logoutBtnPushed() {
+		Stage stage = (Stage) hubLabel.getScene().getWindow();
+		System.out.println("Application closed.");
+		stage.close();
+		System.exit(1);
 	}
 
 	public void startThread() {
@@ -114,15 +133,65 @@ public class Client {
 							// TODO ??????
 							String challenger = tokens.nextToken();
 
+						} else if (command.equals("UPDATE")) {
+
+							String postInfo = "";
+							newsFeed.clear();
+
+							do {
+								try {
+
+									postInfo = dis.readUTF();
+
+									StringTokenizer tokens2 = new StringTokenizer(postInfo, "%");
+									String user = tokens2.nextToken();
+									String msg = tokens2.nextToken();
+									String time = tokens2.nextToken();
+									String comments = tokens2.nextToken();
+									String likes = tokens2.nextToken();
+									String ID = tokens2.nextToken();
+									Status newStatus = new Status(user, msg, time, comments, likes, ID);
+
+									newsFeed.add(newStatus);
+
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+							} while (!postInfo.equals("END"));
+
+							Collections.sort(newsFeed);
+
+						} else if (command.equals("ONLINE")) {
+							String friendInfo = "";
+							onlineFriends.clear();
+							do {
+								try {
+
+									friendInfo = dis.readUTF();
+									StringTokenizer tokens2 = new StringTokenizer(friendInfo);
+									String user = tokens2.nextToken();
+									String port = tokens2.nextToken();
+									Friend bud = new Friend(user, port);
+									onlineFriends.add(bud);
+
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+							} while (!friendInfo.equals("END"));
+
+							Collections.sort(onlineFriends);
 						}
 
-					} catch (IOException e) {
-						e.printStackTrace();
+					} catch (EOFException e) {
+						break;
+					} catch (IOException ex1) {
+						ex1.printStackTrace();
+					} finally {
+
 					}
 				}
 			}
 		});
-		localServer.start();
 		// Handles other clients when they need to get a file from this localServer.
 		Thread recieveFiles = new Thread(new Runnable() {
 			@Override
@@ -370,59 +439,46 @@ public class Client {
 	public void refresh() {
 		try {
 			dos.writeUTF("REFRESH");
-			update();
+			// update();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
 	}
 
-	private void update() {
-		String postInfo = "";
-		String friendInfo = "";
-		newsFeed.clear();
-		onlineFriends.clear();
-
-		do {
-			try {
-
-				postInfo = dis.readUTF();
-
-				StringTokenizer tokens = new StringTokenizer(postInfo, "%");
-				String user = tokens.nextToken();
-				String msg = tokens.nextToken();
-				String time = tokens.nextToken();
-				String comments = tokens.nextToken();
-				String likes = tokens.nextToken();
-				String ID = tokens.nextToken();
-				Status newStatus = new Status(user, msg, time, comments, likes, ID);
-
-				newsFeed.add(newStatus);
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		} while (!postInfo.equals("END"));
-
-		do {
-			try {
-
-				friendInfo = dis.readUTF();
-				StringTokenizer tokens = new StringTokenizer(friendInfo);
-				String user = tokens.nextToken();
-				String port = tokens.nextToken();
-				Friend bud = new Friend(user, port);
-				onlineFriends.add(bud);
-
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		} while (!friendInfo.equals("END"));
-
-		Collections.sort(newsFeed);
-		Collections.sort(onlineFriends);
-
-	}
-
+	/*
+	 * private void update() { String postInfo = ""; String friendInfo = "";
+	 * newsFeed.clear(); onlineFriends.clear();
+	 * 
+	 * do { try {
+	 * 
+	 * postInfo = dis.readUTF();
+	 * 
+	 * StringTokenizer tokens = new StringTokenizer(postInfo, "%"); String user =
+	 * tokens.nextToken(); String msg = tokens.nextToken(); String time =
+	 * tokens.nextToken(); String comments = tokens.nextToken(); String likes =
+	 * tokens.nextToken(); String ID = tokens.nextToken(); Status newStatus = new
+	 * Status(user, msg, time, comments, likes, ID);
+	 * 
+	 * newsFeed.add(newStatus);
+	 * 
+	 * } catch (IOException e) { e.printStackTrace(); } } while
+	 * (!postInfo.equals("END"));
+	 * 
+	 * do { try {
+	 * 
+	 * friendInfo = dis.readUTF(); StringTokenizer tokens = new
+	 * StringTokenizer(friendInfo); String user = tokens.nextToken(); String port =
+	 * tokens.nextToken(); Friend bud = new Friend(user, port);
+	 * onlineFriends.add(bud);
+	 * 
+	 * } catch (IOException e) { e.printStackTrace(); } } while
+	 * (!friendInfo.equals("END"));
+	 * 
+	 * Collections.sort(newsFeed); Collections.sort(onlineFriends);
+	 * 
+	 * }
+	 * 
+	 */
 	public void delete() {
 
 	}

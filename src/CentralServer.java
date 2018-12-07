@@ -1,3 +1,4 @@
+import java.awt.image.BufferedImage;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
@@ -123,7 +124,7 @@ class ClientHandler implements Runnable {
 				System.out.println(clientName + " is attempting to Sign In!");
 				// If the client is a returning user status will be set to Return.
 				if (status.equals("Return")) {
-
+					System.out.println(clientName + " " + password);
 					boolean profileExists = attemptSignIn(clientName, password);
 
 					if (profileExists) {
@@ -155,19 +156,31 @@ class ClientHandler implements Runnable {
 					if (!takenUserName) {
 
 						createProfile();
+						dos.writeUTF("200: Profile creation Sucessfull-" + CentralServer.userNum);
 						notSignedIn = false;
 
 					} else {
-						dos.writeUTF("102: User Name is already taken. :( ");
+						dos.writeUTF("102: User Name is already taken. :( -");
 					}
 				}
 			} catch (IOException e1) {
 				e1.printStackTrace();
 			}
 		}
+		try {
+			connectionSocket.close();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 
 		// Once client has signed-in.
 		try {
+			ServerSocket mainSocket = new ServerSocket(3159);
+			Socket newSocket = mainSocket.accept();
+			// Set up input and output stream with the client to send and receive messages.
+			DataInputStream dis = new DataInputStream(newSocket.getInputStream());
+			DataOutputStream dos = new DataOutputStream(newSocket.getOutputStream());
 			// Do while conditional.
 			boolean hasNotQuit = true;
 
@@ -334,7 +347,7 @@ class ClientHandler implements Runnable {
 		CentralServer.users.add(u);
 
 		try {
-			dos.writeUTF("201: Profile sucessfully created" + CentralServer.userNum);
+			dos.writeUTF("201: Profile sucessfully created-" + CentralServer.userNum);
 			CentralServer.userNum++;
 		} catch (IOException e) {
 			e.printStackTrace();
@@ -384,6 +397,12 @@ class ClientHandler implements Runnable {
 	 */
 	private void updateClientNewsFeed() {
 
+		try {
+			dos.writeUTF("UPDATE");
+		} catch (IOException e1) {
+			e1.printStackTrace();
+		}
+
 		for (User friend : user.friends) {
 
 			for (Post post : friend.posts) {
@@ -409,7 +428,12 @@ class ClientHandler implements Runnable {
 	 * 
 	 */
 	private void sendOnlineFriends() {
-
+		try {
+			dos.writeUTF("ONLINE");
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
 		for (User friend : user.friends) {
 			if (CentralServer.onlineUsers.contains(friend)) {
 				try {
@@ -641,6 +665,13 @@ class ClientHandler implements Runnable {
 			}
 		}
 	}
+	/**
+	 * private BufferedImage recieveImage() {
+	 * 
+	 * BufferedImage bimg; byte[] bytes; bimg = ImageIO.read(new File("PIC"));
+	 * 
+	 * return }
+	 */
 
 }
 
@@ -685,6 +716,7 @@ class Post {
 	String userName;
 	String msg;
 	String time;
+	BufferedImage bimg;
 	int ID;
 
 	String date;

@@ -3,6 +3,7 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
 import javafx.scene.layout.AnchorPane;
+import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 import java.net.URL;
@@ -19,9 +20,10 @@ public class HomeController implements Initializable {
     @FXML private ListView<String> onlineFriendsListView;
     @FXML private ListView<String> offlineFriendsListView;
     @FXML private ListView<String> chatListView;
-    @FXML private Button searchFriendBtn, newChatBtn, assignGrpNameBtn;
+    @FXML private Button searchFriendBtn, newChatBtn, assignGrpNameBtn, sendPostBtn;
     @FXML private Label hubLabel;
     @FXML private TextField groupNameTextField;
+    @FXML private TextArea mainTextArea, mainTextField;
     @FXML private AnchorPane assignGrpNamePane, friendPane, chatPane;
 
     // TESTING
@@ -89,6 +91,19 @@ public class HomeController implements Initializable {
         ContextMenu menuChat = new ContextMenu();
         menuChat.getItems().add(mil3);
         chatListView.setContextMenu(menuChat);
+
+        mainTextField.setWrapText(true);
+        sendPostBtn.setOnAction(event -> sendPostBtnClicked());
+    }
+
+    private void sendPostBtnClicked() {
+        String textarea = mainTextArea.getText();
+        String textfield = mainTextField.getText();
+
+        if(textfield != null) {
+            mainTextArea.setText(textarea + "\n\n" + username +": " + textfield);
+        }
+        mainTextField.setText("");
     }
 
     // Called on Right Click > View of Chat List Group name

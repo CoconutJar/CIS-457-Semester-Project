@@ -649,33 +649,6 @@ class ClientHandler implements Runnable {
  * Handles the Users data.
  * 
  ******************************************************************************************/
-class User {
-	public String realName;
-	public String userName;
-	public String password;
-
-	public DataInputStream dis;
-	public DataOutputStream dos;
-
-	public ArrayList<User> friends = new ArrayList<User>();
-	public ArrayList<Post> posts = new ArrayList<Post>();
-
-	// For P2P
-	public int port;
-
-	/****
-	 * 
-	 * Holds all the information of the User.
-	 * 
-	 ****/
-	public User(String userName, String password, DataInputStream dis, DataOutputStream dos, int port) {
-		this.userName = userName;
-		this.password = password;
-		this.dis = dis;
-		this.dos = dos;
-		this.port = port + 3158;
-	}
-}
 
 class Post {
 

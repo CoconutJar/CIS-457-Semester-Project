@@ -25,6 +25,7 @@ import javafx.scene.control.ListView;
 import javafx.scene.control.MenuButton;
 import javafx.scene.control.MenuItem;
 import javafx.scene.control.SelectionMode;
+import javafx.scene.control.TextArea;
 import javafx.stage.Stage;
 
 public class HomeController implements Initializable {
@@ -37,11 +38,15 @@ public class HomeController implements Initializable {
 	@FXML
 	private ListView chatsListView;
 	@FXML
-	private Button searchFriendBtn, newChatBtn;
+	private Button searchFriendBtn, newChatBtn, sendPostBtn;
+
+	@FXML
+	private TextArea mainTextArea, mainTextField;
+
 	@FXML
 	private Label hubLabel;
 	@FXML
-	private TextField searchField;
+	private TextField searchTextField;
 	@FXML
 	private ListView<String> onlineFriendsListView;
 	@FXML
@@ -65,15 +70,16 @@ public class HomeController implements Initializable {
 		// Set up input and output stream to send and receive messages.
 		InetAddress ip;
 		// Connection to server.
-		try {
-			ip = InetAddress.getByName("localhost");
-			newSock = new Socket(ip, 3159);
-			this.dis = new DataInputStream(newSock.getInputStream());
-			this.dos = new DataOutputStream(newSock.getOutputStream());
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+		// try {
+		// ip = InetAddress.getByName("localhost");
+		// newSock = new Socket(ip, 3159);
+		this.dis = dis;
+		this.dos = dos;
+		// this.dis = new DataInputStream(newSock.getInputStream());
+		// this.dos = new DataOutputStream(newSock.getOutputStream());
+		// } catch (IOException e) {
+		// e.printStackTrace();
+		// }
 		startThread();
 		// update();
 		// Set connection session attributes banner
@@ -82,6 +88,8 @@ public class HomeController implements Initializable {
 
 	@Override
 	public void initialize(URL location, ResourceBundle resources) {
+		onlineFriends.add(new Friend("johndoe", "5234"));
+		onlineFriends.add(new Friend("myuser", "6093"));
 
 		for (Friend onlineFriend : onlineFriends) {
 			onlineFriendsListView.getItems().add(onlineFriend.userName);
@@ -104,7 +112,18 @@ public class HomeController implements Initializable {
 		ContextMenu menu = new ContextMenu();
 		menu.getItems().add(mi1);
 		onlineFriendsListView.setContextMenu(menu);
+		mainTextField.setWrapText(true);
+		sendPostBtn.setOnAction(event -> sendPostBtnClicked());
 
+	}
+
+	private void sendPostBtnClicked() {
+		String textarea = mainTextArea.getText();
+		String textfield = mainTextField.getText();
+		if (textfield != null) {
+			mainTextArea.setText(textarea + "\n\n" + username + ": " + textfield);
+		}
+		mainTextField.setText("");
 	}
 
 	private void startChat() {
@@ -113,7 +132,7 @@ public class HomeController implements Initializable {
 		onFriends = onlineFriendsListView.getSelectionModel().getSelectedItems();
 
 		for (String m : onFriends) {
-			System.out.println("Selected friend: " + m);
+			group(m + username + " " + m);
 		}
 	}
 
@@ -122,8 +141,8 @@ public class HomeController implements Initializable {
 	}
 
 	public void searchFriendBtnPushed() {
-		System.out.println("Search Friend Button Pressed.");
-		addFriend(searchField.getText());
+		System.out.println("Search Friend Button Pressed." + searchTextField.getText());
+		// addFriend(searchTextField.getText());
 	}
 
 	public void newChatBtnPushed() {
@@ -234,7 +253,35 @@ public class HomeController implements Initializable {
 							} while (true);
 
 							Collections.sort(onlineFriends);
+							for (Friend onlineFriend : onlineFriends) {
+								onlineFriendsListView.getItems().add(onlineFriend.userName);
+							}
 							System.out.println("Updated online friends");
+						} else if (command.equals("OFFLINE")) {
+							String friendInfo = "";
+							offlineFriends.clear();
+							do {
+								try {
+
+									friendInfo = dis.readUTF();
+									if (friendInfo.equals("END"))
+										break;
+									StringTokenizer tokens2 = new StringTokenizer(friendInfo);
+									String user = tokens2.nextToken();
+									String port = tokens2.nextToken();
+									Friend bud = new Friend(user, port);
+									offlineFriends.add(bud);
+
+								} catch (IOException e) {
+									e.printStackTrace();
+								}
+							} while (true);
+
+							Collections.sort(offlineFriends);
+							for (Friend offlineFriend : offlineFriends) {
+								offlineFriendsListView.getItems().add(offlineFriend.userName);
+							}
+							System.out.println("Updated offline friends");
 						}
 
 					} catch (EOFException e) {
@@ -455,10 +502,7 @@ public class HomeController implements Initializable {
 		}
 	}
 
-	public void group() {
-
-		// TODO make list of users to msg
-		String list = " ";
+	public void group(String list) {
 
 		try {
 			dos.writeUTF("GROUP%" + list);
@@ -595,7 +639,8 @@ class Friend implements Comparable<Friend> {
 	String port;
 
 	public Friend(String userName, String port) {
-
+		this.userName = userName;
+		this.port = port;
 	}
 
 	@Override

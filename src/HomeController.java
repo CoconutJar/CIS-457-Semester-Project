@@ -39,7 +39,7 @@ public class HomeController implements Initializable {
 	@FXML
 	private int port;
 
-	private Socket s;
+	private Socket newSock;
 	private boolean loggedOn = true;
 	private DataOutputStream dos;
 	private DataInputStream dis;
@@ -56,8 +56,9 @@ public class HomeController implements Initializable {
 		// Connection to server.
 		try {
 			ip = InetAddress.getByName("localhost");
-			this.dis = new DataInputStream(s.getInputStream());
-			this.dos = new DataOutputStream(s.getOutputStream());
+			newSock = new Socket(ip, 3159);
+			this.dis = new DataInputStream(newSock.getInputStream());
+			this.dos = new DataOutputStream(newSock.getOutputStream());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -135,14 +136,15 @@ public class HomeController implements Initializable {
 
 						} else if (command.equals("UPDATE")) {
 
-							String postInfo = "";
+							String postInfo = " ";
 							newsFeed.clear();
 
 							do {
 								try {
 
 									postInfo = dis.readUTF();
-
+									if (postInfo.equals("END"))
+										break;
 									StringTokenizer tokens2 = new StringTokenizer(postInfo, "%");
 									String user = tokens2.nextToken();
 									String msg = tokens2.nextToken();
@@ -157,9 +159,10 @@ public class HomeController implements Initializable {
 								} catch (IOException e) {
 									e.printStackTrace();
 								}
-							} while (!postInfo.equals("END"));
+							} while (true);
 
 							Collections.sort(newsFeed);
+							System.out.println("Updated News Feed.");
 
 						} else if (command.equals("ONLINE")) {
 							String friendInfo = "";
@@ -168,6 +171,8 @@ public class HomeController implements Initializable {
 								try {
 
 									friendInfo = dis.readUTF();
+									if (friendInfo.equals("END"))
+										break;
 									StringTokenizer tokens2 = new StringTokenizer(friendInfo);
 									String user = tokens2.nextToken();
 									String port = tokens2.nextToken();
@@ -177,9 +182,10 @@ public class HomeController implements Initializable {
 								} catch (IOException e) {
 									e.printStackTrace();
 								}
-							} while (!friendInfo.equals("END"));
+							} while (true);
 
 							Collections.sort(onlineFriends);
+							System.out.println("Updated online friends");
 						}
 
 					} catch (EOFException e) {
@@ -280,7 +286,7 @@ public class HomeController implements Initializable {
 
 		try {
 			dos.writeUTF("QUIT");
-			s.close();
+			newSock.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -295,7 +301,6 @@ public class HomeController implements Initializable {
 		String msg = " ";
 		try {
 			dos.writeUTF("POST%" + msg);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -338,7 +343,6 @@ public class HomeController implements Initializable {
 
 		try {
 			dos.writeUTF("SEND%" + to + "%" + msg);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -349,7 +353,6 @@ public class HomeController implements Initializable {
 		String opp = " ";
 		try {
 			dos.writeUTF("BATTLE%" + opp);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -375,7 +378,6 @@ public class HomeController implements Initializable {
 		String userName = " ";
 		try {
 			dos.writeUTF("REMOVE%" + userName);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -387,7 +389,6 @@ public class HomeController implements Initializable {
 		String postID = " ";
 		try {
 			dos.writeUTF("LIKE%" + postID);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -400,7 +401,6 @@ public class HomeController implements Initializable {
 		String comment = " ";
 		try {
 			dos.writeUTF("COMMENT%" + postID + "%" + comment);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -413,7 +413,6 @@ public class HomeController implements Initializable {
 
 		try {
 			dos.writeUTF("GROUP%" + list);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -425,7 +424,6 @@ public class HomeController implements Initializable {
 		String groupChatName = " ";
 		try {
 			dos.writeUTF("LEAVE%" + groupChatName);
-			s.close();
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

@@ -54,6 +54,12 @@ public class LoginController implements Initializable {
 	// Handles closing of window
 	public void closeBtnAction() {
 		Stage stage = (Stage) closeBtn.getScene().getWindow();
+		try {
+			dos.writeUTF("QUIT");
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 		System.out.println("Application closed.");
 		stage.close();
 		System.exit(1);
@@ -127,7 +133,7 @@ public class LoginController implements Initializable {
 			String port2 = response.substring(div + 1);
 
 			port = Integer.parseInt(port2);
-			port += 3158;
+			port += 4158;
 			System.out.println(port2);
 
 			return "200:" + msg;

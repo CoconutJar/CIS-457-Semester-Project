@@ -109,22 +109,28 @@ class ClientHandler implements Runnable {
 		String connectionString;
 		String status;
 		boolean notSignedIn = true;
+		boolean quit = false;
 
 		while (notSignedIn) {
 			try {
 				// Client sends a String filled with information about the client.
 				connectionString = dis.readUTF();
 
+				if (connectionString.equals("QUIT")) {
+					connectionSocket.close();
+					quit = true;
+					break;
+				}
+
 				// Sets the first string received as the status, UserName, password.
 				StringTokenizer tokens = new StringTokenizer(connectionString);
 				status = tokens.nextToken();
 				clientName = tokens.nextToken();
 				password = tokens.nextToken();
-
 				System.out.println(clientName + " is attempting to Sign In!");
 				// If the client is a returning user status will be set to Return.
 				if (status.equals("Return")) {
-					System.out.println(clientName + " " + password);
+					System.out.println(clientName + " is attempting to Sign In!");
 					boolean profileExists = attemptSignIn(clientName, password);
 
 					if (profileExists) {
@@ -133,6 +139,7 @@ class ClientHandler implements Runnable {
 						notSignedIn = false;
 					} else {
 						dos.writeUTF("101: Sign in Failed");
+						System.out.println(clientName + " Failed sign in.");
 					}
 
 				}
@@ -174,165 +181,167 @@ class ClientHandler implements Runnable {
 			e1.printStackTrace();
 		}
 
-		// Once client has signed-in.
-		try {
-			ServerSocket mainSocket = new ServerSocket(3159);
-			Socket newSocket = mainSocket.accept();
-			// Set up input and output stream with the client to send and receive messages.
-			DataInputStream dis = new DataInputStream(newSocket.getInputStream());
-			DataOutputStream dos = new DataOutputStream(newSocket.getOutputStream());
-			// Do while conditional.
-			boolean hasNotQuit = true;
+		if (!quit) {
+			// Once client has signed-in.
+			try {
+				ServerSocket mainSocket = new ServerSocket(3159);
+				Socket newSocket = mainSocket.accept();
+				// Set up input and output stream with the client to send and receive messages.
+				this.dis = new DataInputStream(newSocket.getInputStream());
+				this.dos = new DataOutputStream(newSocket.getOutputStream());
+				// Do while conditional.
+				boolean hasNotQuit = true;
 
-			updateClientNewsFeed();
-			sendOnlineFriends();
+				updateClientNewsFeed();
+				sendOnlineFriends();
 
-			// Main Loop
-			do {
+				// Main Loop
+				do {
 
-				// Waits for a command from the client.
-				fromClient = dis.readUTF();
-				StringTokenizer tokens = new StringTokenizer(fromClient, "%");
+					// Waits for a command from the client.
+					fromClient = dis.readUTF();
+					StringTokenizer tokens = new StringTokenizer(fromClient, "%");
 
-				String command = tokens.nextToken();
+					String command = tokens.nextToken();
 
-				// TODO Make sure commands are broken down correctly.
+					// TODO Make sure commands are broken down correctly.
 
-				// QUIT = Quit.
-				// POST = Posting to main feed.
-				// SEND = Forwards a message.
-				// BATTLE = Invites a friend to a game.
-				// ADD = Adds a friend.
-				// REMOVE = Remove a friend.
-				// LIKE = Like a statusUpdate.
-				// COMMENT = Comment on a statusUpdate.
-				// GETL = Get users who liked the post.
-				// GETC = Get comments on a post.
-				// GETF = Get Friend List.
-				// GROUP = Start a new group chat with listed users.
-				// LEAVE = Leave group chat.
-				// REFRESH = Refresh news feed and Online Friends.
-				// DELETE = Delete a statusUpdate.
-				// ?
-				if (fromClient.equals("QUIT")) {
+					// QUIT = Quit.
+					// POST = Posting to main feed.
+					// SEND = Forwards a message.
+					// BATTLE = Invites a friend to a game.
+					// ADD = Adds a friend.
+					// REMOVE = Remove a friend.
+					// LIKE = Like a statusUpdate.
+					// COMMENT = Comment on a statusUpdate.
+					// GETL = Get users who liked the post.
+					// GETC = Get comments on a post.
+					// GETF = Get Friend List.
+					// GROUP = Start a new group chat with listed users.
+					// LEAVE = Leave group chat.
+					// REFRESH = Refresh news feed and Online Friends.
+					// DELETE = Delete a statusUpdate.
+					// ?
+					if (fromClient.equals("QUIT")) {
 
-					hasNotQuit = false;
+						hasNotQuit = false;
 
-				} else if (command.equals("POST")) {
+					} else if (command.equals("POST")) {
 
-					String msg = tokens.nextToken();
+						String msg = tokens.nextToken();
 
-					postStatus(msg);
+						postStatus(msg);
 
-				} else if (command.equals("SEND")) {
+					} else if (command.equals("SEND")) {
 
-					String to = tokens.nextToken();
-					String msg = tokens.nextToken();
+						String to = tokens.nextToken();
+						String msg = tokens.nextToken();
 
-					sendMsg(to, msg);
+						sendMsg(to, msg);
 
-					// TODO No idea what we are doing with this.
-				} else if (command.equals("BATTLE")) {
+						// TODO No idea what we are doing with this.
+					} else if (command.equals("BATTLE")) {
 
-					String opponent = tokens.nextToken();
+						String opponent = tokens.nextToken();
 
-					for (int i = 0; i < user.friends.size(); i++) {
-						if (user.friends.get(i).userName.equals(opponent)) {
-							user.friends.get(i).dos.writeUTF("BATTLE:" + clientName);
+						for (int i = 0; i < user.friends.size(); i++) {
+							if (user.friends.get(i).userName.equals(opponent)) {
+								user.friends.get(i).dos.writeUTF("BATTLE:" + clientName);
+							}
 						}
+
+						// TODO Right now only adds on one user (like Twitter).
+					} else if (command.equals("ADD")) {
+
+						String person = tokens.nextToken();
+						addFriend(person);
+
+						// TODO Right now only removes on one user (like Twitter).
+					} else if (command.equals("REMOVE")) {
+
+						String person = tokens.nextToken();
+						removeFriend(person);
+
+					} else if (command.equals("LIKE")) {
+
+						String sID = tokens.nextToken();
+						int id = Integer.parseInt(sID);
+						for (Post post : CentralServer.userPosts) {
+							if (post.ID == id)
+								likePost(post);
+						}
+
+					} else if (command.equals("COMMENT")) {
+
+						String sID = tokens.nextToken();
+						String msg = tokens.nextToken();
+						int id = Integer.parseInt(sID);
+						for (Post post : CentralServer.userPosts) {
+							if (post.ID == id)
+								commentPost(post, msg);
+						}
+						// commentStatus(post);
+					} else if (command.equals("GETL")) {
+
+						String sID = tokens.nextToken();
+						int id = Integer.parseInt(sID);
+						for (Post post : CentralServer.userPosts) {
+							if (post.ID == id)
+								getLikes(post);
+						}
+
+					} else if (command.equals("GETC")) {
+
+						String sID = tokens.nextToken();
+						int id = Integer.parseInt(sID);
+						for (Post post : CentralServer.userPosts) {
+							if (post.ID == id)
+								getComments(post);
+						}
+
+					} else if (command.equals("GETF")) {
+
+						sendOnlineFriends();
+
+					} else if (command.equals("GROUP")) {
+
+						String userList = tokens.nextToken();
+						formGroupChat(userList);
+
+					} else if (command.equals("LEAVE")) {
+
+						String groupName = tokens.nextToken();
+						leaveGroup(groupName);
+
+					} else if (fromClient.equals("REFRESH")) {
+
+						updateClientNewsFeed();
+						sendOnlineFriends();
+
+					} else if (command.equals("DELETE")) {
+
+						String sID = tokens.nextToken();
+						int id = Integer.parseInt(sID);
+						for (Post post : CentralServer.userPosts) {
+							if (post.ID == id)
+								deletePost(post);
+						}
+
 					}
 
-					// TODO Right now only adds on one user (like Twitter).
-				} else if (command.equals("ADD")) {
+				} while (hasNotQuit);
 
-					String person = tokens.nextToken();
-					addFriend(person);
+				// Set the online status to offline.
+				loggedIn = false;
 
-					// TODO Right now only removes on one user (like Twitter).
-				} else if (command.equals("REMOVE")) {
+				// Close the Socket.
+				connectionSocket.close();
+				System.out.println(clientName + " has disconnected!");
 
-					String person = tokens.nextToken();
-					removeFriend(person);
-
-				} else if (command.equals("LIKE")) {
-
-					String sID = tokens.nextToken();
-					int id = Integer.parseInt(sID);
-					for (Post post : CentralServer.userPosts) {
-						if (post.ID == id)
-							likePost(post);
-					}
-
-				} else if (command.equals("COMMENT")) {
-
-					String sID = tokens.nextToken();
-					String msg = tokens.nextToken();
-					int id = Integer.parseInt(sID);
-					for (Post post : CentralServer.userPosts) {
-						if (post.ID == id)
-							commentPost(post, msg);
-					}
-					// commentStatus(post);
-				} else if (command.equals("GETL")) {
-
-					String sID = tokens.nextToken();
-					int id = Integer.parseInt(sID);
-					for (Post post : CentralServer.userPosts) {
-						if (post.ID == id)
-							getLikes(post);
-					}
-
-				} else if (command.equals("GETC")) {
-
-					String sID = tokens.nextToken();
-					int id = Integer.parseInt(sID);
-					for (Post post : CentralServer.userPosts) {
-						if (post.ID == id)
-							getComments(post);
-					}
-
-				} else if (command.equals("GETF")) {
-
-					sendOnlineFriends();
-
-				} else if (command.equals("GROUP")) {
-
-					String userList = tokens.nextToken();
-					formGroupChat(userList);
-
-				} else if (command.equals("LEAVE")) {
-
-					String groupName = tokens.nextToken();
-					leaveGroup(groupName);
-
-				} else if (fromClient.equals("REFRESH")) {
-
-					updateClientNewsFeed();
-					sendOnlineFriends();
-
-				} else if (command.equals("DELETE")) {
-
-					String sID = tokens.nextToken();
-					int id = Integer.parseInt(sID);
-					for (Post post : CentralServer.userPosts) {
-						if (post.ID == id)
-							deletePost(post);
-					}
-
-				}
-
-			} while (hasNotQuit);
-
-			// Set the online status to offline.
-			loggedIn = false;
-
-			// Close the Socket.
-			connectionSocket.close();
-			System.out.println(clientName + " has disconnected!");
-
-		} catch (Exception e) {
-			System.err.println(e);
-			System.exit(1);
+			} catch (Exception e) {
+				System.err.println(e);
+				System.exit(1);
+			}
 		}
 	}
 
@@ -345,6 +354,7 @@ class ClientHandler implements Runnable {
 
 		User u = new User(clientName, password, dis, dos, CentralServer.userNum);
 		CentralServer.users.add(u);
+		this.user = u;
 
 		try {
 			dos.writeUTF("201: Profile sucessfully created-" + CentralServer.userNum);
@@ -399,23 +409,28 @@ class ClientHandler implements Runnable {
 
 		try {
 			dos.writeUTF("UPDATE");
+			dos.flush();
+			System.out.println("Updated News Feed.");
 		} catch (IOException e1) {
 			e1.printStackTrace();
 		}
+		System.out.println("Finished Updated News Feed.");
+		if (!user.friends.isEmpty()) {
+			for (User friend : user.friends) {
+				System.out.println("hi");
+				for (Post post : friend.posts) {
 
-		for (User friend : user.friends) {
-
-			for (Post post : friend.posts) {
-
-				try {
-					dos.writeUTF(post.userName + "%" + post.msg + "%" + post.getTime() + "%" + post.comments.size()
-							+ "%" + post.likes.size() + "%" + post.ID);
-				} catch (IOException e) {
-					e.printStackTrace();
+					try {
+						dos.writeUTF(post.userName + "%" + post.msg + "%" + post.getTime() + "%" + post.comments.size()
+								+ "%" + post.likes.size() + "%" + post.ID);
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
 				}
 			}
+			System.out.println(user.friends.size());
 		}
-
+		System.out.println("Finished Updated News Feed.");
 		try {
 			dos.writeUTF("END");
 		} catch (IOException e) {

@@ -1,13 +1,14 @@
 import javafx.collections.ObservableList;
-import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.control.*;
+import javafx.scene.layout.AnchorPane;
 import javafx.stage.Stage;
 
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
+import java.util.concurrent.atomic.AtomicReference;
 
 public class HomeController implements Initializable {
     @FXML private String username, password;
@@ -17,12 +18,16 @@ public class HomeController implements Initializable {
     @FXML private MenuItem logoutBtn;
     @FXML private ListView<String> onlineFriendsListView;
     @FXML private ListView<String> offlineFriendsListView;
-    @FXML private Button searchFriendBtn, newChatBtn;
+    @FXML private ListView<String> chatListView;
+    @FXML private Button searchFriendBtn, newChatBtn, assignGrpNameBtn;
     @FXML private Label hubLabel;
+    @FXML private TextField groupNameTextField;
+    @FXML private AnchorPane assignGrpNamePane, friendPane, chatPane;
 
     // TESTING
     private ArrayList<User> onlineFriendsList = new ArrayList<>();
     private ArrayList<User> offlineFriendsList = new ArrayList<>();
+    private ArrayList<Group> chatList = new ArrayList<>();
     // ^^TESTING^^
 
     // Data received from ConnectController
@@ -48,6 +53,9 @@ public class HomeController implements Initializable {
         offlineFriendsList.add(new User("thisdude", "pwpwpw"));
         offlineFriendsList.add(new User("testuser", "petsname"));
         offlineFriendsList.add(new User("testname", "testpass"));
+
+        chatList.add(new Group("group1", onlineFriendsList));
+        chatList.add(new Group("group2", offlineFriendsList));
         // ^^TESTING^^
 
         // Populates GUI ListView with usernames of all Users in ArrayList<User> onlineFriendsList
@@ -58,9 +66,13 @@ public class HomeController implements Initializable {
         for (User offlineFriend : offlineFriendsList) {
             offlineFriendsListView.getItems().add(offlineFriend.userName);
         }
+        for (Group group : chatList) {
+            chatListView.getItems().add(group.name);
+        }
 
         // Allows user to select multiple Users to begin group chat with or send message to
         onlineFriendsListView.getSelectionModel().setSelectionMode(SelectionMode.MULTIPLE);
+        chatListView.getSelectionModel().setSelectionMode(SelectionMode.SINGLE);
 
         // Creates "Right Click" menu options for online friends in GUI ListView
         MenuItem mi1 = new MenuItem("Start Chat");
@@ -69,7 +81,32 @@ public class HomeController implements Initializable {
         mil2.setOnAction(e -> sendFile());
         ContextMenu menu = new ContextMenu();
         menu.getItems().add(mi1);
+        menu.getItems().add(mil2);
         onlineFriendsListView.setContextMenu(menu);
+        // "Right Click" to view chat
+        MenuItem mil3 = new MenuItem("View");
+        mil3.setOnAction(e -> viewChat());
+        ContextMenu menuChat = new ContextMenu();
+        menuChat.getItems().add(mil3);
+        chatListView.setContextMenu(menuChat);
+    }
+
+    // Called on Right Click > View of Chat List Group name
+    private void viewChat() {
+        ObservableList<String> chats;
+        chats = chatListView.getSelectionModel().getSelectedItems();
+
+        // For all groupname that was selected..
+        for(String n : chats){
+            // For all the Groups in the chatList ArrayList..
+            for(Group group : chatList){
+                // If the groupname selected equals a Group's name, print that Group's members.
+                if(n.equals(group.name)){
+                    // Calls Group class for printMembers()
+                    group.printMembers();
+                }
+            }
+        }
 
     }
 
@@ -79,10 +116,48 @@ public class HomeController implements Initializable {
         // Gets list of all Online Friends selected
         onFriends = onlineFriendsListView.getSelectionModel().getSelectedItems();
 
-        for(String m : onFriends){
-            System.out.println("Selected friend: " + m);
-        }
+        AtomicReference<String> groupName = new AtomicReference<>("");
+        ArrayList<User> members = new ArrayList<>();
+
+        // Able/Disable Panes
+        friendPane.setDisable(true);
+        chatPane.setDisable(true);
+        assignGrpNamePane.setVisible(true);
+
+        // On 'Assign' button click
+        assignGrpNameBtn.setOnAction(event -> {
+            Group group;
+
+            groupName.set(groupNameTextField.getText());
+            assignGrpNamePane.setVisible(false);
+            friendPane.setDisable(false);
+            chatPane.setDisable(false);
+
+            // Adds Users to ArrayList based on username string search
+            for(String m : onFriends){
+//                System.out.println("Start chat: " + m);
+                for(User user : onlineFriendsList){
+                    if(m.equals(user.userName)){
+                        members.add(user);
+                    }
+                }
+            }
+            group = new Group(groupName.toString(), members);
+
+            addGroupToChatList(group);
+        });
+
+
     }
+
+    // Adds new group to Chat ListView in GUI
+    // Adds new Group object to ArrayList<Group> chatList
+    private void addGroupToChatList(Group group) {
+        chatListView.getItems().add(group.name);
+        chatList.add(group);
+        chatListView.refresh();
+    }
+
     // Called on Right Click > Send File of Online Friend User
     private void sendFile(){
         ObservableList<String> onFriends;
@@ -90,7 +165,7 @@ public class HomeController implements Initializable {
         onFriends = onlineFriendsListView.getSelectionModel().getSelectedItems();
 
         for(String m : onFriends){
-            System.out.println("Start chat: " + m);
+            System.out.println("Send file: " + m);
         }
     }
 

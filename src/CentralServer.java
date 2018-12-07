@@ -738,4 +738,9 @@ class Group {
 		this.members = members;
 	}
 
+	public void printMembers(){
+		for(User user: this.members){
+			System.out.println("User: " + user.userName);
+		}
+	}
 }
